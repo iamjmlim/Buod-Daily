@@ -1,9 +1,10 @@
 // One interface for every AI provider, so switching is a settings change.
 //   AI_PROVIDER=gemini   (default) needs GEMINI_API_KEY
-//   AI_PROVIDER=github   uses GitHub Models with GITHUB_TOKEN (free, low limits)
 // AI_FALLBACK_PROVIDER is tried when the main one is rate-limited or down.
+// (GitHub Models was retired on 2026-07-30, so it is no longer an option.)
+// To add a provider: write a caller below and register it in CALLERS.
 
-export type ProviderName = 'gemini' | 'github';
+export type ProviderName = 'gemini';
 
 export class AiError extends Error {
   readonly status: number | null;
@@ -82,40 +83,12 @@ async function callGeminiModel(model: string, req: AiRequest): Promise<AiRespons
   return { text, model, provider: 'gemini' };
 }
 
-async function callGithubModels(req: AiRequest): Promise<AiResponse> {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new AiError('GITHUB_TOKEN is not set', 0);
-  const model = process.env.GITHUB_MODEL || 'openai/gpt-4.1-mini';
-
-  const res = await fetch('https://models.github.ai/inference/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: req.system },
-        { role: 'user', content: req.user },
-      ],
-    }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!res.ok) throw new AiError(`GitHub Models HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`, res.status);
-
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const text = data.choices?.[0]?.message?.content ?? '';
-  if (!text) throw new AiError('GitHub Models returned no text');
-  return { text, model, provider: 'github' };
-}
-
 const CALLERS: Record<ProviderName, (req: AiRequest) => Promise<AiResponse>> = {
   gemini: callGemini,
-  github: callGithubModels,
 };
 
 function parseProvider(value: string | undefined): ProviderName | null {
-  return value === 'gemini' || value === 'github' ? value : null;
+  return value && value in CALLERS ? (value as ProviderName) : null;
 }
 
 export function configuredProviders(): ProviderName[] {

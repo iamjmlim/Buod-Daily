@@ -6,7 +6,7 @@
 //   npm run summarize -- --dry-run  -> call the AI and print results, save nothing
 //
 // Settings (env vars, all optional except the provider key):
-//   AI_PROVIDER=gemini|github   AI_FALLBACK_PROVIDER=github|gemini
+//   AI_PROVIDER=gemini          AI_FALLBACK_PROVIDER=(none yet)
 //   AI_DAILY_LIMIT=100          max AI calls per day (Philippine time), all providers
 //   STORIES_PER_RUN=6           stories handled per run
 //   MIN_OUTLETS=2               outlets needed for a normal story (without a tier-1 source)
@@ -63,7 +63,15 @@ async function recordCall(provider: string) {
   );
 }
 
-class OutOfCalls extends Error {}
+// Stops the run. `fatal` = needs your attention (bad key, unknown model);
+// otherwise it's temporary (limit reached, AI overloaded) and the next run retries.
+class OutOfCalls extends Error {
+  readonly fatal: boolean;
+  constructor(message: string, fatal = false) {
+    super(message);
+    this.fatal = fatal;
+  }
+}
 
 let callsLeft = 0;
 
@@ -85,7 +93,7 @@ async function askAi(user: string): Promise<AiResponse> {
   }
   if (lastError instanceof AiError && lastError.isRateLimit) throw new OutOfCalls('All AI providers are rate-limited');
   if (lastError instanceof AiError && lastError.isConfigError) {
-    throw new OutOfCalls(`AI provider setup problem, fix it before the next run: ${lastError.message.slice(0, 200)}`);
+    throw new OutOfCalls(`AI provider setup problem, fix it before the next run: ${lastError.message.slice(0, 200)}`, true);
   }
   throw lastError;
 }
@@ -212,7 +220,15 @@ async function main() {
     : (check(await db.from('pipeline_runs').insert({ step: 'summarize' }).select('id').single(), 'start run') as {
         id: string;
       });
-  const stats = { eligible: eligible.length, published: 0, skipped: 0, errors: 0, stoppedEarly: false };
+  const stats = {
+    eligible: eligible.length,
+    published: 0,
+    skipped: 0,
+    errors: 0, // AI temporarily unavailable for a story (retried next run)
+    bugs: 0, // anything else (database, code): needs attention
+    stoppedEarly: false,
+    needsAttention: false,
+  };
   let failuresInARow = 0;
 
   for (const { story, info } of eligible) {
@@ -296,10 +312,15 @@ async function main() {
       if (err instanceof OutOfCalls) {
         console.log(`Stopping: ${err.message}.`);
         stats.stoppedEarly = true;
+        if (err.fatal) stats.needsAttention = true;
         break;
       }
-      stats.errors++;
-      failuresInARow++;
+      if (err instanceof AiError) {
+        stats.errors++;
+        failuresInARow++;
+      } else {
+        stats.bugs++;
+      }
       console.error(`! Error on story ${story.id}: ${(err as Error).message.replace(/\s+/g, ' ').slice(0, 200)}`);
     }
   }
@@ -311,10 +332,9 @@ async function main() {
       .eq('id', run.id);
   }
   console.log('Done:', stats);
-  // Fail the GitHub run (so you get an email) when nothing could be processed at all.
-  if ((stats.errors > 0 || stats.stoppedEarly) && stats.published === 0 && stats.skipped === 0 && callsLeft > 0) {
-    process.exitCode = 1;
-  }
+  // Fail the GitHub run (so you get an email) only when something needs fixing.
+  // A busy free AI tier is normal: those stories simply wait for the next run.
+  if (stats.needsAttention || stats.bugs > 0) process.exitCode = 1;
 }
 
 main().catch((err) => {

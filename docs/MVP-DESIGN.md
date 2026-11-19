@@ -90,7 +90,7 @@ Each source gets a **trust tier** (1 = wire/official, 2 = major national) and an
 | Pipeline | Node.js + TypeScript scripts in `pipeline/`, using `rss-parser` (+ `@mozilla/readability` in week 2) | Runs as a normal script, so there are no serverless time limits |
 | Scheduler | **GitHub Actions** scheduled workflow, every 30 min | Free and unlimited for a **public** repo. Runs may start a few minutes late; GitHub disables schedules after 60 days with no commits, so a small keep-alive commit runs monthly |
 | Database | Supabase (Postgres), free tier | 500 MB is years of text. Also acts as the job queue: stories carry a `status` |
-| AI | **Gemini API free tier** (main) and **GitHub Models** (backup), behind one `AI_PROVIDER` setting | **One call per story** (summary + Filipino + "why it matters" in one JSON). Top ~50–100 stories/day to stay in free limits. Switching to Claude or paid Gemini later is a settings change |
+| AI | **Gemini API free tier** (`gemini-flash-lite-latest`, then `gemini-flash-latest`), behind one `AI_PROVIDER` setting. GitHub Models was retired 2026-07-30, so there is no free backup provider yet | **One call per story** (summary + Filipino + "why it matters" in one JSON). Top ~50–100 stories/day to stay in free limits. Switching to Claude or paid Gemini later is a settings change |
 | Hosting | **Vercel Hobby** (website only) at `*.vercel.app` | Free but non-commercial. When adding ads: Vercel Pro, or Cloudflare Pages (free plan allows commercial use) |
 | Monitoring | GitHub's email on failed workflow runs + UptimeRobot free | Know when a feed or the site breaks |
 
@@ -231,7 +231,7 @@ Week 2's spot-check is tuning, not approval: once the site is live, nothing wait
 | GitHub (public repo) + Actions | Free |
 | Supabase | Free tier (free projects pause after a week of inactivity; the 30-min pipeline keeps it active) |
 | Vercel Hobby | Free while non-commercial |
-| AI: Gemini free tier / GitHub Models | Free, within daily limits |
+| AI: Gemini free tier | Free, within daily limits (often busy at peak times; stories wait for the next run) |
 | UptimeRobot | Free |
 
 **When it would start costing money:**
