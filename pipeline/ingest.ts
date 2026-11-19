@@ -10,6 +10,8 @@ import { CLUSTER_WINDOW_HOURS, importanceScore, isSameStory, similarity, titleTo
 import { check, getDb } from './lib/db.ts';
 
 const MAX_ITEM_AGE_HOURS = 48; // ignore older feed items
+// Headline markers outlets use when they fix or pull a story (English and Filipino).
+const CORRECTION_PATTERN = /\b(correction|corrected|clarification|retraction|retracted|erratum|pagtatama|itinama)\b/i;
 const DRY_RUN = process.argv.includes('--dry-run');
 
 type SourceRow = {
@@ -173,7 +175,16 @@ async function run() {
   ) as SourceRow[];
 
   // 2. Fetch feeds and insert new articles.
-  const stats = { sources: sources.length, feedErrors: 0, notModified: 0, newArticles: 0, newStories: 0, joined: 0 };
+  const stats = {
+    sources: sources.length,
+    feedErrors: 0,
+    notModified: 0,
+    newArticles: 0,
+    newStories: 0,
+    joined: 0,
+    retitled: 0,
+    corrections: 0,
+  };
   for (const { source, result } of await fetchAll(sources)) {
     const s = source as SourceRow;
     if (result.status === 'error') {
@@ -205,6 +216,30 @@ async function run() {
         ) as { id: string }[])
       : [];
     stats.newArticles += inserted.length;
+
+    // Outlets sometimes edit a headline to flag a correction or retraction.
+    // Keep our copy of the title current, and re-check the story when that happens.
+    const known = rows.length
+      ? (check(
+          await db
+            .from('articles')
+            .select('id, canonical_url, title, story_id')
+            .in('canonical_url', rows.map((r) => r.canonical_url)),
+          `load known articles for ${s.slug}`,
+        ) as { id: string; canonical_url: string; title: string; story_id: string | null }[])
+      : [];
+    const newTitle = new Map(rows.map((r) => [r.canonical_url, r.title]));
+    for (const a of known) {
+      const title = newTitle.get(a.canonical_url);
+      if (!title || title === a.title) continue;
+      stats.retitled++;
+      check(await db.from('articles').update({ title }).eq('id', a.id), 'update article title');
+      if (a.story_id && CORRECTION_PATTERN.test(title) && !CORRECTION_PATTERN.test(a.title)) {
+        stats.corrections++;
+        console.log(`   ! correction flagged: "${title}"`);
+        check(await db.from('stories').update({ recheck: true }).eq('id', a.story_id).eq('status', 'published'), 'flag recheck');
+      }
+    }
     console.log(`✓ ${s.name}: ${rows.length} recent, ${inserted.length} new`);
 
     await db

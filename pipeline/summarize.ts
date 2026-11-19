@@ -15,7 +15,13 @@ import { check, getDb } from './lib/db.ts';
 import { fetchArticleText } from './lib/article.ts';
 import { groundingChecks, meetsSourceRule, parseDraft, type CheckResult, type SummaryDraft } from './lib/gate.ts';
 import { AiError, callProvider, configuredProviders, type AiResponse } from './ai/providers.ts';
-import { buildUserPrompt, PROMPT_VERSION, SUMMARY_SYSTEM_PROMPT, type SourceForPrompt } from './ai/prompts.ts';
+import {
+  buildUserPrompt,
+  PROMPT_VERSION,
+  SUMMARY_SYSTEM_PROMPT,
+  type Sensitivity,
+  type SourceForPrompt,
+} from './ai/prompts.ts';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT ?? 100);
@@ -29,15 +35,34 @@ const db = getDb();
 
 type StoryRow = {
   id: string;
+  status: 'pending' | 'published';
   importance: number;
+  sensitivity: Sensitivity;
+  summarized_outlets: number;
+  recheck: boolean;
   articles: {
     title: string;
     snippet: string | null;
     url: string;
     published_at: string;
+    removed_at: string | null;
     sources: { name: string; slug: string; tier: number } | null;
   }[];
 };
+
+const STORY_SELECT =
+  'id, status, importance, sensitivity, summarized_outlets, recheck, ' +
+  'articles(title, snippet, url, published_at, removed_at, sources(name, slug, tier))';
+
+// Articles an outlet has taken down no longer count as sources.
+function liveArticles(story: StoryRow) {
+  return story.articles.filter((a) => !a.removed_at);
+}
+
+function outletInfo(story: StoryRow) {
+  const tiers = new Map(liveArticles(story).map((a) => [a.sources?.slug ?? a.url, a.sources?.tier ?? 2]));
+  return { outlets: tiers.size, tier1: [...tiers.values()].filter((t) => t === 1).length };
+}
 
 function philippineDate(d = new Date()): string {
   return new Date(d.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
@@ -113,7 +138,7 @@ function slugify(headline: string, id: string): string {
 async function gatherSources(story: StoryRow): Promise<SourceForPrompt[]> {
   // One article per outlet (the newest), most important outlets first.
   const perOutlet = new Map<string, StoryRow['articles'][number]>();
-  for (const a of [...story.articles].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
+  for (const a of [...liveArticles(story)].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
     const slug = a.sources?.slug ?? a.url;
     if (!perOutlet.has(slug)) perOutlet.set(slug, a);
   }
@@ -174,6 +199,74 @@ async function processStory(story: StoryRow, outletInfo: { outlets: number; tier
   return { outcome: outcome!, checks, sources };
 }
 
+type WorkItem = {
+  story: StoryRow;
+  info: { outlets: number; tier1: number };
+  kind: 'new' | 'refresh' | 'recheck';
+};
+
+async function addCorrection(storyId: string, note: string) {
+  const { data } = await db.from('summaries').select('headline').eq('story_id', storyId).eq('lang', 'en').maybeSingle();
+  const headline = data?.headline ? `“${data.headline}”` : 'A story';
+  check(await db.from('corrections').insert({ story_id: storyId, note: `${headline} ${note}` }), 'add correction');
+}
+
+async function unpublish(storyId: string, reason: string) {
+  await addCorrection(storyId, `was removed automatically: ${reason}.`);
+  check(
+    await db.from('stories').update({ status: 'unpublished', recheck: false, skip_reason: reason }).eq('id', storyId),
+    'unpublish story',
+  );
+}
+
+async function loadWork(): Promise<WorkItem[]> {
+  const since = new Date(Date.now() - CANDIDATE_WINDOW_HOURS * 3_600_000).toISOString();
+
+  const pending = check(
+    await db
+      .from('stories')
+      .select(STORY_SELECT)
+      .eq('status', 'pending')
+      .gte('updated_at', since)
+      .order('importance', { ascending: false })
+      .limit(300),
+    'load pending stories',
+  ) as unknown as StoryRow[];
+
+  // Published stories that got new outlets (ingest bumps updated_at) or were flagged for a re-check.
+  const published = check(
+    await db
+      .from('stories')
+      .select(STORY_SELECT)
+      .eq('status', 'published')
+      .or(`updated_at.gte.${since},recheck.eq.true`)
+      .order('importance', { ascending: false })
+      .limit(300),
+    'load published stories',
+  ) as unknown as StoryRow[];
+
+  const rechecks: WorkItem[] = [];
+  const rest: WorkItem[] = [];
+  for (const story of published) {
+    const info = outletInfo(story);
+    if (story.recheck) rechecks.push({ story, info, kind: 'recheck' });
+    else if (info.outlets > story.summarized_outlets) rest.push({ story, info, kind: 'refresh' });
+  }
+  for (const story of pending) {
+    const info = outletInfo(story);
+    if (info.tier1 >= 1 || info.outlets >= MIN_OUTLETS) rest.push({ story, info, kind: 'new' });
+  }
+  rest.sort((a, b) => b.story.importance - a.story.importance);
+
+  console.log(
+    `${pending.length} pending stories; work this run: ${rechecks.length} corrections to re-check, ` +
+      `${rest.filter((w) => w.kind === 'refresh').length} published stories with new outlets, ` +
+      `${rest.filter((w) => w.kind === 'new').length} new stories (need ${MIN_OUTLETS}+ outlets).\n`,
+  );
+  // Corrections always go first; they matter more than new stories.
+  return [...rechecks, ...rest].slice(0, Math.max(STORIES_PER_RUN, rechecks.length));
+}
+
 async function main() {
   const settings = check(
     await db.from('settings').select('value').eq('key', 'publishing_enabled').maybeSingle(),
@@ -187,33 +280,8 @@ async function main() {
   const used = await callsUsedToday();
   callsLeft = DAILY_LIMIT - used;
   console.log(`${DRY_RUN ? 'DRY RUN. ' : ''}AI calls today: ${used}/${DAILY_LIMIT}. Providers: ${configuredProviders().join(' -> ')}`);
-  if (callsLeft <= 0) {
-    console.log('Daily AI limit reached; remaining stories wait for tomorrow.');
-    return;
-  }
 
-  const since = new Date(Date.now() - CANDIDATE_WINDOW_HOURS * 3_600_000).toISOString();
-  const stories = check(
-    await db
-      .from('stories')
-      .select('id, importance, articles(title, snippet, url, published_at, sources(name, slug, tier))')
-      .eq('status', 'pending')
-      .gte('updated_at', since)
-      .order('importance', { ascending: false })
-      .limit(300),
-    'load pending stories',
-  ) as unknown as StoryRow[];
-
-  const eligible = stories
-    .map((s) => {
-      const tiers = new Map(s.articles.map((a) => [a.sources?.slug ?? a.url, a.sources?.tier ?? 2]));
-      const info = { outlets: tiers.size, tier1: [...tiers.values()].filter((t) => t === 1).length };
-      return { story: s, info };
-    })
-    .filter(({ info }) => info.tier1 >= 1 || info.outlets >= MIN_OUTLETS)
-    .slice(0, STORIES_PER_RUN);
-
-  console.log(`${stories.length} pending stories, ${eligible.length} eligible this run (need ${MIN_OUTLETS}+ outlets).\n`);
+  const work = await loadWork();
 
   const run = DRY_RUN
     ? null
@@ -221,8 +289,11 @@ async function main() {
         id: string;
       });
   const stats = {
-    eligible: eligible.length,
+    work: work.length,
     published: 0,
+    updated: 0,
+    unpublished: 0,
+    kept: 0, // refresh failed checks: the existing summary stays
     skipped: 0,
     errors: 0, // AI temporarily unavailable for a story (retried next run)
     bugs: 0, // anything else (database, code): needs attention
@@ -231,7 +302,7 @@ async function main() {
   };
   let failuresInARow = 0;
 
-  for (const { story, info } of eligible) {
+  for (const { story, info, kind } of work) {
     // If the AI keeps failing, stop and let the next scheduled run try again.
     if (failuresInARow >= 2) {
       console.log('Stopping: AI providers are unavailable right now; the next run will retry.');
@@ -239,23 +310,43 @@ async function main() {
       break;
     }
     try {
+      // A corrected/withdrawn source can leave too few outlets: remove without spending an AI call.
+      if (kind === 'recheck' && !meetsSourceRule(story.sensitivity, info, MIN_OUTLETS)) {
+        stats.unpublished++;
+        console.log(`✗ UNPUBLISH (${info.outlets} outlets left): too few sources after a correction/withdrawal`);
+        if (!DRY_RUN) {
+          await unpublish(story.id, 'a source outlet withdrew or corrected its report, leaving too few sources');
+        }
+        continue;
+      }
+      if (callsLeft <= 0) {
+        console.log('Daily AI limit reached; remaining stories wait for tomorrow.');
+        stats.stoppedEarly = true;
+        break;
+      }
+
       const { outcome, checks, sources } = await processStory(story, info);
       failuresInARow = 0;
       const fullTexts = sources.filter((s) => s.isFullText).length;
-      const label = `${info.outlets} outlets, ${fullTexts}/${sources.length} full texts`;
+      const label = `${kind}, ${info.outlets} outlets, ${fullTexts}/${sources.length} full texts`;
 
       if (outcome.kind === 'published') {
-        stats.published++;
         const d = outcome.draft;
-        console.log(`✓ PUBLISH [${d.category}/${d.sensitivity}] (${label})`);
+        console.log(`✓ ${kind === 'new' ? 'PUBLISH' : 'UPDATE'} [${d.category}/${d.sensitivity}] (${label})`);
         console.log(`   EN : ${d.headline_en}\n        ${d.summary_en}\n        Why: ${d.why_it_matters_en}`);
         console.log(`   FIL: ${d.headline_fil}\n        ${d.summary_fil}\n        Bakit: ${d.why_it_matters_fil}\n`);
       } else {
-        stats.skipped++;
-        console.log(`✗ SKIP (${label}): ${outcome.reason}`);
+        console.log(`✗ ${kind === 'new' ? 'SKIP' : kind === 'recheck' ? 'UNPUBLISH' : 'KEEP OLD'} (${label}): ${outcome.reason}`);
         if (outcome.draft?.headline_en) console.log(`   draft: ${outcome.draft.headline_en}`);
         console.log('');
       }
+
+      if (outcome.kind === 'published') {
+        if (kind === 'new') stats.published++;
+        else stats.updated++;
+      } else if (kind === 'new') stats.skipped++;
+      else if (kind === 'recheck') stats.unpublished++;
+      else stats.kept++;
       if (DRY_RUN) continue;
 
       if (checks.length) {
@@ -280,21 +371,29 @@ async function main() {
           ),
           'save summaries',
         );
+        const now = new Date().toISOString();
         check(
           await db
             .from('stories')
             .update({
               status: 'published',
-              slug: slugify(d.headline_en, story.id),
               category: d.category,
               sensitivity: d.sensitivity,
               skip_reason: null,
-              published_at: new Date().toISOString(),
+              summarized_outlets: info.outlets,
+              recheck: false,
+              // New stories get a slug and publish time; refreshed ones keep theirs.
+              ...(kind === 'new'
+                ? { slug: slugify(d.headline_en, story.id), published_at: now }
+                : { summary_updated_at: now }),
             })
             .eq('id', story.id),
-          'publish story',
+          'save story',
         );
-      } else {
+        if (kind === 'recheck') {
+          await addCorrection(story.id, 'was rewritten after a source outlet corrected or withdrew its report.');
+        }
+      } else if (kind === 'new') {
         check(
           await db
             .from('stories')
@@ -307,6 +406,11 @@ async function main() {
             .eq('id', story.id),
           'skip story',
         );
+      } else if (kind === 'recheck') {
+        await unpublish(story.id, 'a source outlet corrected or withdrew its report and the summary could not be re-verified');
+      } else {
+        // The refresh didn't pass; keep the published summary and don't retry for the same outlets.
+        check(await db.from('stories').update({ summarized_outlets: info.outlets }).eq('id', story.id), 'keep story');
       }
     } catch (err) {
       if (err instanceof OutOfCalls) {
@@ -334,10 +438,11 @@ async function main() {
   }
   console.log('Done:', stats);
 
-  // Tell the website to refresh so new stories show up right away.
+  // Tell the website to refresh so changes show up right away.
   const siteUrl = process.env.SITE_URL;
   const secret = process.env.REVALIDATE_SECRET;
-  if (!DRY_RUN && stats.published > 0 && siteUrl && secret) {
+  const changed = stats.published + stats.updated + stats.unpublished;
+  if (!DRY_RUN && changed > 0 && siteUrl && secret) {
     try {
       const res = await fetch(`${siteUrl.replace(/\/$/, '')}/api/revalidate`, {
         method: 'POST',

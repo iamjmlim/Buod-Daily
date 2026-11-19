@@ -14,6 +14,7 @@ export type Story = {
   sensitivity: 'normal' | 'sensitive' | 'election';
   publishedAt: string;
   updatedAt: string;
+  summaryUpdatedAt: string | null; // set when the summary was rewritten after publishing
   headline: string;
   summary: string;
   whyItMatters: string | null;
@@ -28,14 +29,21 @@ type Row = {
   sensitivity: Story['sensitivity'];
   published_at: string;
   updated_at: string;
+  summary_updated_at: string | null;
   summaries: { lang: Locale; headline: string; summary: string; why_it_matters: string | null }[];
-  articles: { url: string; title: string; published_at: string; sources: { name: string; slug: string } | null }[];
+  articles: {
+    url: string;
+    title: string;
+    published_at: string;
+    removed_at: string | null;
+    sources: { name: string; slug: string } | null;
+  }[];
 };
 
 const SELECT =
-  'id, slug, category, sensitivity, published_at, updated_at, ' +
+  'id, slug, category, sensitivity, published_at, updated_at, summary_updated_at, ' +
   'summaries(lang, headline, summary, why_it_matters), ' +
-  'articles(url, title, published_at, sources(name, slug))';
+  'articles(url, title, published_at, removed_at, sources(name, slug))';
 
 function toStory(row: Row, locale: Locale): Story | null {
   const summary = row.summaries.find((s) => s.lang === locale) ?? row.summaries.find((s) => s.lang === 'en');
@@ -43,7 +51,9 @@ function toStory(row: Row, locale: Locale): Story | null {
 
   // One link per outlet (its newest article), newest outlets first.
   const byOutlet = new Map<string, StorySource>();
-  for (const a of [...row.articles].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
+  // Articles the outlet has taken down are not shown as sources.
+  const live = row.articles.filter((a) => !a.removed_at);
+  for (const a of [...live].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
     const outletSlug = a.sources?.slug ?? new URL(a.url).hostname;
     if (byOutlet.has(outletSlug)) continue;
     byOutlet.set(outletSlug, {
@@ -62,6 +72,7 @@ function toStory(row: Row, locale: Locale): Story | null {
     sensitivity: row.sensitivity,
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
+    summaryUpdatedAt: row.summary_updated_at,
     headline: summary.headline,
     summary: summary.summary,
     whyItMatters: summary.why_it_matters,

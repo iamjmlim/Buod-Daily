@@ -47,6 +47,7 @@ export function StoryCard({
           </Link>
         )}
         <time dateTime={story.publishedAt}>{formatDateTime(story.publishedAt, locale)}</time>
+        {story.summaryUpdatedAt && <span className="font-medium normal-case text-foreground">{t.updated}</span>}
         {story.sensitivity !== 'normal' && (
           <span className="rounded-sm bg-highlight/30 px-1.5 py-0.5 font-medium text-highlight-foreground normal-case dark:text-foreground">
             {t.sensitive}

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "ingest": "node --env-file-if-exists=.env.local pipeline/ingest.ts",
     "ingest:dry": "node pipeline/ingest.ts --dry-run",
+    "linkcheck": "node --env-file-if-exists=.env.local pipeline/linkcheck.ts",
     "summarize": "node --env-file-if-exists=.env.local pipeline/summarize.ts",
     "summarize:dry": "node --env-file-if-exists=.env.local pipeline/summarize.ts --dry-run"
   },

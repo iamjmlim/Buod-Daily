@@ -134,7 +134,10 @@ export function groundingChecks(draft: SummaryDraft, sourceText: string): CheckR
         const lw = w.toLowerCase().replace(/[’]/g, "'");
         if (ALLOWED_CAPITALIZED.has(lw)) return false;
         const base = lw.replace(/'s$/, '');
-        return !source.includes(base);
+        if (source.includes(base)) return false;
+        // Plurals of ordinary words ("Prosecutors" when sources say "prosecutor") aren't new facts.
+        const singular = base.replace(/(ies)$/, 'y').replace(/(ches|shes|sses|xes)$/, (m) => m.slice(0, -2)).replace(/s$/, '');
+        return singular.length < 4 || !source.includes(singular);
       }),
     ),
   ];

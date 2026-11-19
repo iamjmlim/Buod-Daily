@@ -71,6 +71,13 @@ async function StoryBody({ params }: { params: Params }) {
 
       <p className="mt-4 text-sm text-muted-foreground">
         {t.published} <time dateTime={story.publishedAt}>{formatDateTime(story.publishedAt, lang)}</time>
+        {story.summaryUpdatedAt && (
+          <>
+            {' · '}
+            <span className="font-medium text-foreground">{t.updated}</span>{' '}
+            <time dateTime={story.summaryUpdatedAt}>{formatDateTime(story.summaryUpdatedAt, lang)}</time>
+          </>
+        )}
       </p>
 
       <div className="mt-8 space-y-5 text-lg leading-relaxed text-pretty">
