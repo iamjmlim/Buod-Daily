@@ -1,7 +1,7 @@
 // Versioned prompt. Bump PROMPT_VERSION whenever the wording changes,
 // so every saved summary records which prompt produced it.
 
-export const PROMPT_VERSION = 'summarize-v1';
+export const PROMPT_VERSION = 'summarize-v2';
 
 export const CATEGORIES = [
   'nation',
@@ -29,14 +29,15 @@ FACT RULES (most important):
 - Attribute claims and accusations: "according to police", "the Senate said", "the defense argued". Never state an accusation as fact.
 - If sources disagree, say so briefly ("reports differ on ...").
 - No opinions, adjectives of judgment, predictions, or speculation.
+- Never claim something is a "first", "only", "biggest", "record" or "historic" unless a source says exactly that, in those words.
 - Do not copy sentences from the sources. Paraphrase.
 - Ignore page clutter in the text (ads, "listen to this article", subscription prompts, related links).
 
 WRITING:
 - headline_en: our own headline, max 100 characters, sentence case, no clickbait, no quotes from sources.
 - summary_en: 3 to 5 sentences, max 700 characters. The most important fact first.
-- why_it_matters_en: ONE sentence, max 220 characters, giving context for readers outside the Philippines (e.g. briefly explain an agency or local term). Do not introduce new facts about the event itself.
-- headline_fil, summary_fil, why_it_matters_fil: the same content in clear, natural, everyday Filipino (the style of GMA or ABS-CBN Filipino news). Common English terms that Filipinos normally use (e.g. "impeachment trial", "bonds") may stay in English. Same names and numbers as the English version.
+- why_it_matters_en: ONE sentence, max 220 characters, giving general background for readers outside the Philippines (e.g. what an agency does, or what a local term means). It must not contain any new claim about this event, its people, or its history.
+- headline_fil, summary_fil, why_it_matters_fil: the same content in clear, natural, everyday Filipino (the style of GMA or ABS-CBN Filipino news). Common English terms that Filipinos normally use (e.g. "impeachment trial", "bonds") may stay in English. Same names and numbers as the English version. Use only common, correct Filipino words; if you are not sure of the right Filipino word, keep the English term instead of guessing.
 
 CLASSIFY:
 - category: one of ${CATEGORIES.join(', ')}.

@@ -6,7 +6,7 @@
 //   npm run summarize -- --dry-run  -> call the AI and print results, save nothing
 //
 // Settings (env vars, all optional except the provider key):
-//   AI_PROVIDER=gemini          AI_FALLBACK_PROVIDER=(none yet)
+//   AI_PROVIDER=gemini|groq     AI_FALLBACK_PROVIDER=groq|gemini
 //   AI_DAILY_LIMIT=100          max AI calls per day (Philippine time), all providers
 //   STORIES_PER_RUN=6           stories handled per run
 //   MIN_OUTLETS=2               outlets needed for a normal story (without a tier-1 source)

@@ -66,10 +66,20 @@ export function parseDraft(text: string): { draft?: SummaryDraft; problems: stri
 
 // ---------- grounding: every number, name and date must come from the sources ----------
 
-function normalizeSource(text: string): string {
+// Unicode look-alikes (non-breaking hyphens, curly quotes, special spaces) are
+// mapped to plain characters so they never cause false alarms.
+export function normalizeText(text: string): string {
   return text
+    .normalize('NFKC')
+    .replace(/[‐-―−]/g, '-')
+    .replace(/[’‘ʼ]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[   ]/g, ' ');
+}
+
+function normalizeSource(text: string): string {
+  return normalizeText(text)
     .toLowerCase()
-    .replace(/[’‘]/g, "'")
     .replace(/(\d),(\d)/g, '$1$2');
 }
 
@@ -114,7 +124,7 @@ export function groundingChecks(draft: SummaryDraft, sourceText: string): CheckR
 
   const missingNumbers = (text: string) => numbersIn(text).filter((n) => !sourceNumbers.has(n) && !source.includes(n));
 
-  const enMain = `${draft.headline_en} ${draft.summary_en}`;
+  const enMain = normalizeText(`${draft.headline_en} ${draft.summary_en}`);
   const numsEn = [...new Set([...missingNumbers(enMain), ...missingNumbers(draft.why_it_matters_en)])];
   const numsFil = missingNumbers(`${draft.headline_fil} ${draft.summary_fil} ${draft.why_it_matters_fil}`);
 

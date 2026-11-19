@@ -1,10 +1,11 @@
 // One interface for every AI provider, so switching is a settings change.
 //   AI_PROVIDER=gemini   (default) needs GEMINI_API_KEY
+//   AI_PROVIDER=groq     needs GROQ_API_KEY
 // AI_FALLBACK_PROVIDER is tried when the main one is rate-limited or down.
 // (GitHub Models was retired on 2026-07-30, so it is no longer an option.)
 // To add a provider: write a caller below and register it in CALLERS.
 
-export type ProviderName = 'gemini';
+export type ProviderName = 'gemini' | 'groq';
 
 export class AiError extends Error {
   readonly status: number | null;
@@ -35,11 +36,13 @@ function geminiModels(): string[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Free-tier models are often briefly overloaded (HTTP 503), so we go through
-// the model list twice with a short pause before giving up.
+// Free-tier models are often briefly overloaded (HTTP 503). Without a backup
+// provider we go through the model list twice with a short pause; with one,
+// we hand over to the backup right away instead of waiting.
 async function callGemini(req: AiRequest): Promise<AiResponse> {
   let lastError: AiError | null = null;
-  for (let pass = 1; pass <= 2; pass++) {
+  const passes = process.env.AI_FALLBACK_PROVIDER ? 1 : 2;
+  for (let pass = 1; pass <= passes; pass++) {
     if (pass === 2) await sleep(8_000);
     for (const model of geminiModels()) {
       try {
@@ -83,8 +86,44 @@ async function callGeminiModel(model: string, req: AiRequest): Promise<AiRespons
   return { text, model, provider: 'gemini' };
 }
 
+// Groq: free tier with its own limits, so it stays up when Gemini is busy.
+// OpenAI-compatible API. Keys: https://console.groq.com/keys
+async function callGroq(req: AiRequest): Promise<AiResponse> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new AiError('GROQ_API_KEY is not set', 0);
+  // Tested 2026-11-19: gpt-oss-120b writes far better Filipino than qwen3.8-27b.
+  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+
+  let res: Response;
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: req.system },
+          { role: 'user', content: req.user },
+        ],
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new AiError(`Groq network error: ${(err as Error).message}`);
+  }
+  if (!res.ok) throw new AiError(`Groq HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`, res.status);
+
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content ?? '';
+  if (!text) throw new AiError('Groq returned no text');
+  return { text, model, provider: 'groq' };
+}
+
 const CALLERS: Record<ProviderName, (req: AiRequest) => Promise<AiResponse>> = {
   gemini: callGemini,
+  groq: callGroq,
 };
 
 function parseProvider(value: string | undefined): ProviderName | null {
