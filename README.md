@@ -12,7 +12,7 @@ Full design: [docs/MVP-DESIGN.md](docs/MVP-DESIGN.md)
 
 - [x] Week 1: feed ingest, duplicate skipping, story grouping, GitHub Actions schedule
 - [x] Week 2: AI summaries + Filipino translation + quality gate (Gemini, Groq backup)
-- [ ] Week 3: Next.js website (shadcn/ui) on Vercel
+- [x] Week 3: Next.js website (shadcn/ui), EN/FIL, admin review log (deploy to Vercel)
 - [ ] Week 4: story updates + corrections automation
 
 ## Try it without any accounts

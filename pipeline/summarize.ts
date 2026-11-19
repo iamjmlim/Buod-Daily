@@ -328,10 +328,27 @@ async function main() {
   if (run) {
     await db
       .from('pipeline_runs')
-      .update({ finished_at: new Date().toISOString(), ok: stats.errors === 0, stats })
+      // "ok" means nothing needs your attention; a busy free AI tier is not a problem.
+      .update({ finished_at: new Date().toISOString(), ok: !stats.needsAttention && stats.bugs === 0, stats })
       .eq('id', run.id);
   }
   console.log('Done:', stats);
+
+  // Tell the website to refresh so new stories show up right away.
+  const siteUrl = process.env.SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!DRY_RUN && stats.published > 0 && siteUrl && secret) {
+    try {
+      const res = await fetch(`${siteUrl.replace(/\/$/, '')}/api/revalidate`, {
+        method: 'POST',
+        headers: { 'x-revalidate-secret': secret },
+        signal: AbortSignal.timeout(15_000),
+      });
+      console.log(`Website refresh: HTTP ${res.status}`);
+    } catch (err) {
+      console.warn(`Website refresh failed (pages will still update within ~10 min): ${(err as Error).message}`);
+    }
+  }
   // Fail the GitHub run (so you get an email) only when something needs fixing.
   // A busy free AI tier is normal: those stories simply wait for the next run.
   if (stats.needsAttention || stats.bugs > 0) process.exitCode = 1;
