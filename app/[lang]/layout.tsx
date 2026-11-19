@@ -47,8 +47,16 @@ export default async function SiteLayout({
   return (
     <html lang={lang === 'fil' ? 'fil' : 'en'} className={`${sans.variable} ${mono.variable} ${serif.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        >
+          {getDictionary(lang).skipToContent}
+        </a>
         <SiteHeader locale={lang} />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 outline-none sm:px-6">
+          {children}
+        </main>
         <SiteFooter locale={lang} />
       </body>
     </html>

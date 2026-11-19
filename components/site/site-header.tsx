@@ -1,42 +1,26 @@
 import Link from 'next/link';
 import { CATEGORY_SLUGS, getDictionary, type Locale } from '@/lib/i18n';
 import { LangSwitch } from './lang-switch';
+import { SectionNav } from './section-nav';
 
 export function SiteHeader({ locale }: { locale: Locale }) {
   const t = getDictionary(locale);
+  const items = [
+    { href: `/${locale}`, label: t.navTop },
+    ...CATEGORY_SLUGS.map((c) => ({ href: `/${locale}/${c}`, label: t.categories[c] })),
+  ];
   return (
     <header className="border-b border-border bg-background">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 pt-5 pb-3 sm:px-6">
-        <Link href={`/${locale}`} className="group flex items-baseline gap-3 focus-visible:outline-none">
-          <span className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 pt-4 pb-2 sm:px-6 sm:pt-5">
+        <Link href={`/${locale}`} className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
+          <span className="font-serif text-3xl leading-none font-semibold tracking-tight sm:text-4xl">
             Buod<span className="text-primary">.</span>
           </span>
-          <span className="hidden text-sm text-muted-foreground sm:inline">{t.tagline}</span>
+          <span className="mt-1 text-[0.8125rem] text-muted-foreground sm:mt-0 sm:text-sm">{t.tagline}</span>
         </Link>
         <LangSwitch label={t.switchLanguage} ariaLabel={t.switchLanguageLabel} />
       </div>
-      <nav aria-label="Categories" className="mx-auto max-w-5xl px-4 sm:px-6">
-        <ul className="-mb-px flex gap-5 overflow-x-auto pb-px text-sm [scrollbar-width:none]">
-          <li>
-            <Link
-              href={`/${locale}`}
-              className="inline-block border-b-2 border-transparent py-2.5 font-medium whitespace-nowrap text-foreground hover:border-highlight"
-            >
-              {t.topStories}
-            </Link>
-          </li>
-          {CATEGORY_SLUGS.map((c) => (
-            <li key={c}>
-              <Link
-                href={`/${locale}/${c}`}
-                className="inline-block border-b-2 border-transparent py-2.5 whitespace-nowrap text-muted-foreground hover:border-highlight hover:text-foreground"
-              >
-                {t.categories[c]}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <SectionNav items={items} label={t.navLabel} />
     </header>
   );
 }

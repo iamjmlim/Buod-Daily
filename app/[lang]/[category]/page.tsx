@@ -29,10 +29,10 @@ async function CategoryStories({ params }: { params: Params }) {
   const stories = await getLatestStories(lang, category);
   return (
     <>
-      <h1 className="border-b border-border pt-8 pb-4 font-serif text-3xl font-semibold tracking-tight">
+      <h1 className="border-b border-border pt-7 pb-4 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
         {t.categories[category]}
       </h1>
-      <StoryList stories={stories} locale={lang} lead={false} />
+      <StoryList stories={stories} locale={lang} lead={false} category={category} />
     </>
   );
 }

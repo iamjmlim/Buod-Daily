@@ -148,4 +148,16 @@
     background: var(--highlight);
     color: var(--highlight-foreground);
   }
+  /* Browser surfaces carry the palette too: focus rings, underlines, scrollbars. */
+  a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  html {
+    scrollbar-color: var(--border) transparent;
+  }
 }

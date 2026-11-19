@@ -30,7 +30,10 @@ const en = {
   description:
     'Short, neutral summaries of the day’s Philippine news in English and Filipino, with links to every original report.',
   topStories: 'Top stories',
-  latest: 'Latest',
+  navTop: 'Top stories',
+  navLabel: 'Sections',
+  skipToContent: 'Skip to stories',
+  lastUpdated: 'Last updated',
   categories: {
     nation: 'Nation',
     metro: 'Metro',
@@ -45,14 +48,18 @@ const en = {
   whyItMatters: 'Why it matters',
   reportedBy: 'Reported by',
   outlets: (n: number) => (n === 1 ? '1 outlet' : `${n} outlets`),
+  reportedByCount: (n: number) => (n === 1 ? 'Reported by 1 outlet' : `Reported by ${n} outlets`),
   readOriginals: 'Read the original reports',
+  aiShort: 'AI-written summary, checked against the sources',
   aiNotice:
-    'This is an AI-generated summary of the reports listed below. Names and numbers are checked against the sources, but read the originals for full details.',
+    'This summary was written by AI from the reports listed above. Names and numbers are checked against those reports, but read the originals for full details.',
   published: 'Published',
   updated: 'Updated',
-  noStories: 'No stories here yet. New summaries are added every 30 minutes.',
+  noStories: 'No stories in this section yet. New summaries are added every 30 minutes.',
+  noStoriesCta: 'See today’s top stories',
+  weatherOfficial: 'Official forecasts and typhoon bulletins: PAGASA',
+  moreIn: (section: string) => `More in ${section}`,
   backHome: 'Back to top stories',
-  readSummary: 'Read summary',
   switchLanguage: 'Filipino',
   switchLanguageLabel: 'Basahin sa Filipino',
   about: 'How it works',
@@ -63,7 +70,6 @@ const en = {
     'Buod Daily summarizes reporting by Philippine news outlets. We do not republish their articles: every summary links to the original reports.',
   notFoundTitle: 'Story not found',
   notFoundBody: 'It may have been removed or the link is wrong.',
-  sensitive: 'Developing story',
 } as const;
 
 type Dictionary = {
@@ -80,7 +86,10 @@ const fil: Dictionary = {
   description:
     'Maikli at patas na buod ng mga balita sa Pilipinas, sa Ingles at Filipino, may link sa bawat orihinal na ulat.',
   topStories: 'Nangungunang balita',
-  latest: 'Pinakabago',
+  navTop: 'Ulo ng balita',
+  navLabel: 'Mga seksyon',
+  skipToContent: 'Lumaktaw sa mga balita',
+  lastUpdated: 'Huling update',
   categories: {
     nation: 'Bansa',
     metro: 'Metro',
@@ -95,14 +104,18 @@ const fil: Dictionary = {
   whyItMatters: 'Bakit mahalaga',
   reportedBy: 'Iniulat ng',
   outlets: (n: number) => `${n} outlet`,
+  reportedByCount: (n: number) => `Iniulat ng ${n} outlet`,
   readOriginals: 'Basahin ang orihinal na mga ulat',
+  aiShort: 'Buod na isinulat ng AI, sinuri laban sa mga source',
   aiNotice:
-    'Ito ay buod na ginawa ng AI mula sa mga ulat sa ibaba. Sinusuri ang mga pangalan at numero laban sa mga source, pero basahin ang orihinal para sa buong detalye.',
+    'Isinulat ng AI ang buod na ito mula sa mga ulat na nakalista sa itaas. Sinusuri ang mga pangalan at numero laban sa mga ulat na iyon, pero basahin ang orihinal para sa buong detalye.',
   published: 'Inilathala',
   updated: 'In-update',
-  noStories: 'Wala pang balita rito. May bagong buod tuwing 30 minuto.',
+  noStories: 'Wala pang balita sa seksyong ito. May bagong buod tuwing 30 minuto.',
+  noStoriesCta: 'Tingnan ang ulo ng balita',
+  weatherOfficial: 'Opisyal na taya ng panahon at bulletin ng bagyo: PAGASA',
+  moreIn: (section: string) => `Iba pa sa ${section}`,
   backHome: 'Bumalik sa nangungunang balita',
-  readSummary: 'Basahin ang buod',
   switchLanguage: 'English',
   switchLanguageLabel: 'Read in English',
   about: 'Paano ito gumagana',
@@ -113,7 +126,6 @@ const fil: Dictionary = {
     'Binubuod ng Buod Daily ang mga ulat ng mga news outlet sa Pilipinas. Hindi namin muling inilalathala ang kanilang mga artikulo: may link sa orihinal ang bawat buod.',
   notFoundTitle: 'Hindi makita ang balita',
   notFoundBody: 'Maaaring inalis na ito o mali ang link.',
-  sensitive: 'Umuunlad na balita',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en: en as Dictionary, fil };
@@ -134,6 +146,16 @@ export function formatDateTime(iso: string, locale: Locale): string {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso)) + ' PHT'
+  );
+}
+
+export function formatTime(iso: string, locale: Locale): string {
+  return (
+    new Intl.DateTimeFormat(locale === 'fil' ? 'fil-PH' : 'en-PH', {
+      timeZone: 'Asia/Manila',
       hour: 'numeric',
       minute: '2-digit',
     }).format(new Date(iso)) + ' PHT'

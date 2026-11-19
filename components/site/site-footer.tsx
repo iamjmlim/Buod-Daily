@@ -10,21 +10,21 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <p className="font-serif text-xl font-semibold">
             Buod<span className="text-primary">.</span> <span className="font-sans text-sm font-normal text-muted-foreground">{t.tagline}</span>
           </p>
-          <p className="max-w-prose text-muted-foreground">{t.footerNote}</p>
+          <p className="max-w-[36rem] text-pretty text-muted-foreground">{t.footerNote}</p>
         </div>
-        <ul className="space-y-2 sm:justify-self-end">
+        <ul className="sm:justify-self-end">
           <li>
-            <Link href={`/${locale}/about`} className="hover:underline">
+            <Link href={`/${locale}/about`} className="inline-flex min-h-11 items-center hover:underline">
               {t.about}
             </Link>
           </li>
           <li>
-            <Link href={`/${locale}/corrections`} className="hover:underline">
+            <Link href={`/${locale}/corrections`} className="inline-flex min-h-11 items-center hover:underline">
               {t.corrections}
             </Link>
           </li>
           <li>
-            <Link href={`/${locale}/feed.xml`} className="hover:underline">
+            <Link href={`/${locale}/feed.xml`} className="inline-flex min-h-11 items-center hover:underline">
               RSS
             </Link>
           </li>

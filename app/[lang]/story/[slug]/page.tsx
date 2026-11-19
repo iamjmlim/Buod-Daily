@@ -4,8 +4,10 @@ import { hreflang } from '@/lib/seo';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
+import { OutletCount } from '@/components/site/outlet-count';
+import { StoryCard } from '@/components/site/story-card';
 import { formatDateTime, getDictionary, isLocale } from '@/lib/i18n';
-import { getRecentSlugs, getStory } from '@/lib/news';
+import { getLatestStories, getRecentSlugs, getStory } from '@/lib/news';
 
 type Params = Promise<{ lang: string; slug: string }>;
 
@@ -37,6 +39,28 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
+async function MoreStories({ lang, slug, category }: { lang: 'en' | 'fil'; slug: string; category: string | null }) {
+  if (!category) return null;
+  const t = getDictionary(lang);
+  const cat = category as keyof typeof t.categories;
+  const more = (await getLatestStories(lang, cat, 8)).filter((s) => s.slug !== slug).slice(0, 3);
+  if (more.length === 0) return null;
+  return (
+    <section aria-labelledby="more-heading" className="mt-14 border-t-2 border-foreground/80 pt-5">
+      <h2 id="more-heading" className="font-serif text-xl font-semibold">
+        <Link href={`/${lang}/${category}`} className="underline-offset-4 hover:underline">
+          {t.moreIn(t.categories[cat])}
+        </Link>
+      </h2>
+      <div className="divide-y divide-border">
+        {more.map((s) => (
+          <StoryCard key={s.id} story={s} locale={lang} showCategory={false} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 async function StoryBody({ params }: { params: Params }) {
   const { lang, slug } = await params;
   if (!isLocale(lang)) notFound();
@@ -46,53 +70,60 @@ async function StoryBody({ params }: { params: Params }) {
   const contact = process.env.CONTACT_EMAIL;
 
   return (
-    <article className="mx-auto max-w-2xl py-10">
-      <Link href={`/${lang}`} className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+    <article className="mx-auto max-w-[42rem] py-8 sm:py-10">
+      <Link
+        href={`/${lang}`}
+        className="mb-6 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" aria-hidden />
         {t.backHome}
       </Link>
 
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tracking-wide text-muted-foreground uppercase">
-        {story.category && (
-          <Link href={`/${lang}/${story.category}`} className="font-semibold text-primary hover:underline">
-            {t.categories[story.category]}
-          </Link>
-        )}
-        {story.sensitivity !== 'normal' && (
-          <span className="rounded-sm bg-highlight/30 px-1.5 py-0.5 font-medium text-highlight-foreground normal-case dark:text-foreground">
-            {t.sensitive}
-          </span>
-        )}
-      </div>
-
-      <h1 className="font-serif text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-[2.6rem]">
+      <h1 className="font-serif text-[1.85rem] leading-[1.15] font-semibold tracking-tight text-balance sm:text-[2.6rem]">
         {story.headline}
       </h1>
 
-      <p className="mt-4 text-sm text-muted-foreground">
-        {t.published} <time dateTime={story.publishedAt}>{formatDateTime(story.publishedAt, lang)}</time>
-        {story.summaryUpdatedAt && (
-          <>
-            {' · '}
-            <span className="font-medium text-foreground">{t.updated}</span>{' '}
-            <time dateTime={story.summaryUpdatedAt}>{formatDateTime(story.summaryUpdatedAt, lang)}</time>
-          </>
-        )}
-      </p>
-
-      <div className="mt-8 space-y-5 text-lg leading-relaxed text-pretty">
-        <p>{story.summary}</p>
+      {/* Trust first: who reported it, when, and how this text was made. */}
+      <div className="mt-5 space-y-2.5 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <a href="#sources-heading" className="rounded-full focus-visible:ring-3 focus-visible:ring-ring/50">
+            <OutletCount count={story.sources.length} locale={lang} size="md" />
+          </a>
+          {story.category && (
+            <Link href={`/${lang}/${story.category}`} className="font-medium text-primary underline-offset-4 hover:underline">
+              {t.categories[story.category]}
+            </Link>
+          )}
+        </p>
+        <p>
+          {t.published} <time dateTime={story.publishedAt}>{formatDateTime(story.publishedAt, lang)}</time>
+          {story.summaryUpdatedAt && (
+            <>
+              <span aria-hidden> · </span>
+              <span className="font-medium text-foreground">{t.updated}</span>{' '}
+              <time dateTime={story.summaryUpdatedAt}>{formatDateTime(story.summaryUpdatedAt, lang)}</time>
+            </>
+          )}
+        </p>
+        <p className="flex items-center gap-1.5">
+          <Sparkles className="size-3.5 shrink-0" aria-hidden />
+          <a href="#ai-notice" className="underline decoration-border underline-offset-4 hover:decoration-current">
+            {t.aiShort}
+          </a>
+        </p>
       </div>
 
+      <p className="mt-7 text-[1.0625rem] leading-relaxed text-pretty sm:text-lg">{story.summary}</p>
+
       {story.whyItMatters && (
-        <aside className="mt-8 border-l-4 border-highlight bg-paper py-4 pr-4 pl-5">
-          <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t.whyItMatters}</h2>
-          <p className="mt-1.5 leading-relaxed">{story.whyItMatters}</p>
+        <aside className="mt-7 rounded-lg border border-highlight/50 bg-highlight/10 px-5 py-4">
+          <h2 className="font-serif text-lg font-semibold">{t.whyItMatters}</h2>
+          <p className="mt-1 leading-relaxed text-pretty">{story.whyItMatters}</p>
         </aside>
       )}
 
       <section className="mt-10" aria-labelledby="sources-heading">
-        <h2 id="sources-heading" className="font-serif text-xl font-semibold">
+        <h2 id="sources-heading" className="scroll-mt-6 font-serif text-xl font-semibold">
           {t.readOriginals}
         </h2>
         <ul className="mt-3 divide-y divide-border border-y border-border">
@@ -115,30 +146,30 @@ async function StoryBody({ params }: { params: Params }) {
         </ul>
       </section>
 
-      <p className="mt-8 flex gap-2 rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-        <Sparkles className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          {t.aiNotice}{' '}
-          {t.reportError}{' '}
-          <a
-            href={contact ? `mailto:${contact}?subject=${encodeURIComponent(`Correction: ${story.slug}`)}` : `/${lang}/corrections`}
-            className="font-medium text-foreground underline underline-offset-2"
-          >
-            {t.reportErrorCta}
-          </a>
-          .
-        </span>
+      <p id="ai-notice" className="mt-6 scroll-mt-6 text-sm leading-relaxed text-pretty text-muted-foreground">
+        {t.aiNotice} {t.reportError}{' '}
+        <a
+          href={contact ? `mailto:${contact}?subject=${encodeURIComponent(`Correction: ${story.slug}`)}` : `/${lang}/corrections`}
+          className="font-medium text-foreground underline underline-offset-4"
+        >
+          {t.reportErrorCta}
+        </a>
+        .
       </p>
+
+      <Suspense fallback={null}>
+        <MoreStories lang={lang} slug={story.slug} category={story.category} />
+      </Suspense>
     </article>
   );
 }
 
 function StorySkeleton() {
   return (
-    <div className="mx-auto max-w-2xl animate-pulse space-y-4 py-10" aria-hidden>
-      <div className="h-3 w-40 rounded bg-muted" />
+    <div className="mx-auto max-w-[42rem] animate-pulse space-y-4 py-10" aria-hidden>
       <div className="h-10 w-full rounded bg-muted" />
       <div className="h-10 w-2/3 rounded bg-muted" />
+      <div className="h-6 w-48 rounded-full bg-muted" />
       <div className="h-4 w-full rounded bg-muted" />
       <div className="h-4 w-full rounded bg-muted" />
       <div className="h-4 w-4/5 rounded bg-muted" />
