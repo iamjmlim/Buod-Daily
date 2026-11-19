@@ -12,11 +12,12 @@ concurrency:
 
 permissions:
   contents: read
+  models: read # lets GITHUB_TOKEN call GitHub Models (free backup AI)
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -32,3 +33,15 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Summarize, check and publish
+        run: npm run summarize
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AI_PROVIDER: gemini
+          AI_FALLBACK_PROVIDER: github
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_DAILY_LIMIT: ${{ vars.AI_DAILY_LIMIT || '100' }}
+          STORIES_PER_RUN: ${{ vars.STORIES_PER_RUN || '6' }}

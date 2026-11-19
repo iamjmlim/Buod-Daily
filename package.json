@@ -9,13 +9,17 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "ingest": "node --env-file-if-exists=.env.local pipeline/ingest.ts",
-    "ingest:dry": "node pipeline/ingest.ts --dry-run"
+    "ingest:dry": "node pipeline/ingest.ts --dry-run",
+    "summarize": "node --env-file-if-exists=.env.local pipeline/summarize.ts",
+    "summarize:dry": "node --env-file-if-exists=.env.local pipeline/summarize.ts --dry-run"
   },
   "engines": {
     "node": ">=24"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.119.2",
+    "linkedom": "^0.18.15",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

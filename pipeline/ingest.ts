@@ -272,6 +272,21 @@ async function run() {
     check(await db.from('articles').update({ story_id: storyId }).in('id', articleIds), 'link articles');
   }
 
+  // A skipped story that gets new reports deserves another try (more outlets =
+  // more source text), unless the AI judged it unsuitable (opinion, ads, ...).
+  const joinedStories = [...byStory.keys()].filter((id) => !newStories.includes(id));
+  if (joinedStories.length) {
+    check(
+      await db
+        .from('stories')
+        .update({ status: 'pending', skip_reason: null })
+        .in('id', joinedStories)
+        .eq('status', 'skipped')
+        .not('skip_reason', 'like', 'ai_skip%'),
+      'reopen skipped stories',
+    );
+  }
+
   // 4. Recompute importance for every story that changed.
   for (const storyId of byStory.keys()) {
     const arts = pool.filter((a) => a.storyId === storyId);
