@@ -11,7 +11,7 @@ Full design: [docs/MVP-DESIGN.md](docs/MVP-DESIGN.md)
 ## Status
 
 - [x] Week 1: feed ingest, duplicate skipping, story grouping, GitHub Actions schedule
-- [ ] Week 2: AI summaries + Filipino translation + quality gate
+- [x] Week 2: AI summaries + Filipino translation + quality gate (Gemini, Groq backup)
 - [ ] Week 3: Next.js website (shadcn/ui) on Vercel
 - [ ] Week 4: story updates + corrections automation
 
