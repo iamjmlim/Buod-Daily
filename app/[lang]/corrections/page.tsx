@@ -20,8 +20,8 @@ async function CorrectionsBody({ params }: { params: Params }) {
   const contact = process.env.CONTACT_EMAIL;
   const intro =
     lang === 'fil'
-      ? 'Kapag may mali sa isang buod, itinatama o inaalis namin ito at inililista rito.'
-      : 'When a summary contains a mistake, we fix or remove it and list it here.';
+      ? 'Kapag may mali sa isang buod, itinatama o inaalis namin ito at inililista rito. Awtomatiko rin ito: kapag itinama o binawi ng isang outlet ang ulat nito, muling sinusuri ang buod at isinusulat muli o inaalis, at nakatala rito ang pagbabago.'
+      : 'When a summary contains a mistake, we fix or remove it and list it here. This also happens automatically: if an outlet corrects or withdraws its report, the summary is re-checked and rewritten or removed, and the change is noted here.';
   const empty = lang === 'fil' ? 'Wala pang naitalang pagtatama.' : 'No corrections so far.';
 
   return (

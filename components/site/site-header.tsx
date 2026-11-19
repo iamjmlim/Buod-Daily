@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { CATEGORY_SLUGS, getDictionary, type Locale } from '@/lib/i18n';
+import { getActiveCategories } from '@/lib/news';
 import { LangSwitch } from './lang-switch';
 import { SectionNav } from './section-nav';
 
-export function SiteHeader({ locale }: { locale: Locale }) {
+export async function SiteHeader({ locale }: { locale: Locale }) {
   const t = getDictionary(locale);
+  const active = new Set(await getActiveCategories().catch(() => [...CATEGORY_SLUGS]));
+  // Only sections with recent stories get a tab; the rest would be empty pages.
   const items = [
     { href: `/${locale}`, label: t.navTop },
-    ...CATEGORY_SLUGS.map((c) => ({ href: `/${locale}/${c}`, label: t.categories[c] })),
+    ...CATEGORY_SLUGS.filter((c) => active.has(c)).map((c) => ({ href: `/${locale}/${c}`, label: t.categories[c] })),
   ];
   return (
     <header className="border-b border-border bg-background">

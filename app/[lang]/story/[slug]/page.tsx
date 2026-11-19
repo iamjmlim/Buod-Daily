@@ -54,7 +54,7 @@ async function MoreStories({ lang, slug, category }: { lang: 'en' | 'fil'; slug:
       </h2>
       <div className="divide-y divide-border">
         {more.map((s) => (
-          <StoryCard key={s.id} story={s} locale={lang} showCategory={false} />
+          <StoryCard key={s.id} story={s} locale={lang} showCategory={false} headingLevel="h3" />
         ))}
       </div>
     </section>
@@ -137,7 +137,10 @@ async function StoryBody({ params }: { params: Params }) {
               >
                 <span>
                   <span className="block text-sm font-semibold">{s.outlet}</span>
-                  <span className="block text-sm text-muted-foreground group-hover:text-foreground">{s.title}</span>
+                  <span lang={lang === 'fil' ? 'en' : undefined} className="block text-sm text-muted-foreground group-hover:text-foreground">
+                    {s.title}
+                  </span>
+                  <span className="sr-only"> {t.opensNewTab}</span>
                 </span>
                 <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden />
               </a>
@@ -147,14 +150,23 @@ async function StoryBody({ params }: { params: Params }) {
       </section>
 
       <p id="ai-notice" className="mt-6 scroll-mt-6 text-sm leading-relaxed text-pretty text-muted-foreground">
-        {t.aiNotice} {t.reportError}{' '}
-        <a
-          href={contact ? `mailto:${contact}?subject=${encodeURIComponent(`Correction: ${story.slug}`)}` : `/${lang}/corrections`}
-          className="font-medium text-foreground underline underline-offset-4"
-        >
-          {t.reportErrorCta}
-        </a>
-        .
+        {t.aiNotice}{' '}
+        {contact ? (
+          <>
+            {t.reportError}{' '}
+            <a
+              href={`mailto:${contact}?subject=${encodeURIComponent(`Correction: ${story.slug}`)}`}
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              {t.reportErrorCta}
+            </a>
+            .
+          </>
+        ) : (
+          <Link href={`/${lang}/corrections`} className="font-medium text-foreground underline underline-offset-4">
+            {t.correctionsHow}
+          </Link>
+        )}
       </p>
 
       <Suspense fallback={null}>

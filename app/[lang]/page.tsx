@@ -17,17 +17,19 @@ async function HomeStories({ params }: { params: Promise<{ lang: string }> }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border pt-7 pb-4">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.topStories}</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-0.5 border-b border-border pt-5 pb-3 sm:pt-7 sm:pb-4">
+        <h1 className="font-serif text-xl font-semibold tracking-tight sm:text-3xl">{t.topStories}</h1>
         {lastChange && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[0.8125rem] text-muted-foreground sm:text-sm">
             <span className="capitalize">{formatDate(lastChange, lang)}</span>
             <span aria-hidden> · </span>
             {t.lastUpdated} <time dateTime={lastChange}>{formatTime(lastChange, lang)}</time>
-            <span aria-hidden> · </span>
-            <Link href={`/${lang}/about`} className="font-medium text-primary hover:underline">
-              {t.about}
-            </Link>
+            <span className="hidden sm:inline">
+              <span aria-hidden> · </span>
+              <Link href={`/${lang}/about`} className="font-medium text-primary hover:underline">
+                {t.about}
+              </Link>
+            </span>
           </p>
         )}
       </div>

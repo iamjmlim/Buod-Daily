@@ -42,9 +42,10 @@ export function StoryList({
               href="https://www.pagasa.dost.gov.ph/"
               target="_blank"
               rel="noopener"
-              className="inline-flex min-h-11 items-center gap-1.5 px-2 font-medium text-primary underline-offset-4 hover:underline"
+              className="inline-block max-w-[28rem] px-2 py-2.5 font-medium text-pretty text-primary underline-offset-4 hover:underline"
             >
-              {t.weatherOfficial} <ExternalLink className="size-4" aria-hidden />
+              {t.weatherOfficial}
+              <ExternalLink className="ml-1 inline-block size-4 align-[-2px]" aria-hidden />
             </a>
           )}
         </p>
@@ -62,9 +63,18 @@ export function StoryList({
         </div>
       )}
       <div className="divide-y divide-border">
-        {list.map((s) => (
-          <StoryCard key={s.id} story={s} locale={locale} showCategory={!category} />
-        ))}
+        {list.map((s, i) => {
+          // Repeat the section label only when it changes from the story above.
+          const prev = i === 0 ? (lead ? first : undefined) : list[i - 1];
+          return (
+            <StoryCard
+              key={s.id}
+              story={s}
+              locale={locale}
+              showCategory={!category && s.category !== prev?.category}
+            />
+          );
+        })}
       </div>
     </div>
   );

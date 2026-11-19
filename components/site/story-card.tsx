@@ -10,19 +10,22 @@ export function StoryCard({
   locale,
   variant = 'default',
   showCategory = true,
+  headingLevel = 'h2',
 }: {
   story: Story;
   locale: Locale;
   variant?: 'lead' | 'default';
   showCategory?: boolean;
+  headingLevel?: 'h2' | 'h3';
 }) {
   const t = getDictionary(locale);
   const href = `/${locale}/story/${story.slug}`;
   const isLead = variant === 'lead';
+  const Heading = headingLevel;
 
   return (
-    <article className={cn('group relative', isLead ? 'pt-7 pb-8' : 'py-6')}>
-      <h2
+    <article className={cn('group relative', isLead ? 'pt-6 pb-7 sm:pt-7 sm:pb-8' : 'py-5 sm:py-6')}>
+      <Heading
         className={cn(
           'font-serif font-semibold tracking-tight text-balance',
           isLead ? 'text-[1.75rem] leading-[1.15] sm:text-[2.5rem]' : 'text-xl leading-snug sm:text-[1.4rem]',
@@ -34,7 +37,7 @@ export function StoryCard({
         >
           {story.headline}
         </Link>
-      </h2>
+      </Heading>
 
       {/* One sentence on cards, two on the lead: enough to know the story, not the whole summary. */}
       <p
@@ -57,14 +60,15 @@ export function StoryCard({
       <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-muted-foreground">
         <OutletCount count={story.sources.length} locale={locale} />
         <span className="sr-only">: </span>
-        <span>{story.sources.map((s) => s.outlet).join(' · ')}</span>
+        {/* Phones show just the count (names would double the card height); screen readers still hear them. */}
+        <span className="sr-only sm:not-sr-only">{story.sources.map((s) => s.outlet).join(' · ')}</span>
       </p>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
         {showCategory && story.category && (
           <>
             <Link
               href={`/${locale}/${story.category}`}
-              className="relative z-10 font-medium text-primary underline-offset-4 hover:underline"
+              className="relative z-10 font-medium text-primary underline-offset-4 after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:underline"
             >
               {t.categories[story.category]}
             </Link>

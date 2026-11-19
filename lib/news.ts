@@ -99,6 +99,24 @@ export async function getLatestStories(locale: Locale, category?: CategorySlug, 
   return ((data ?? []) as unknown as Row[]).map((r) => toStory(r, locale)).filter((s): s is Story => s !== null);
 }
 
+// Sections that have at least one story among the latest ~80, newest-first.
+// Used to hide section tabs that would only lead to an empty page.
+export async function getActiveCategories(): Promise<CategorySlug[]> {
+  'use cache';
+  cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+  cacheTag('stories');
+
+  const { data, error } = await publicDb()
+    .from('stories')
+    .select('category')
+    .eq('status', 'published')
+    .not('category', 'is', null)
+    .order('published_at', { ascending: false })
+    .limit(80);
+  if (error) throw new Error(`Loading sections failed: ${error.message}`);
+  return [...new Set((data ?? []).map((r: { category: string }) => r.category as CategorySlug))];
+}
+
 export async function getStory(slug: string, locale: Locale): Promise<Story | null> {
   'use cache';
   cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
