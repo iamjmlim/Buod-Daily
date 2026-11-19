@@ -104,10 +104,10 @@ function slugify(headline: string, id: string): string {
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 70)
-    .replace(/-[^-]*$/, (m) => (m.length < 4 ? '' : m));
-  return `${base}-${id.slice(0, 6)}`;
+    .replace(/^-|-$/g, '');
+  // Cut at ~70 characters on a word boundary, never mid-word.
+  const short = base.length <= 70 ? base : base.slice(0, 71).replace(/-[^-]*$/, '');
+  return `${short}-${id.slice(0, 6)}`;
 }
 
 async function gatherSources(story: StoryRow): Promise<SourceForPrompt[]> {
