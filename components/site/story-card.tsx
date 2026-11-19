@@ -3,10 +3,23 @@ import { cn } from '@/lib/utils';
 import { formatDateTime, getDictionary, type Locale } from '@/lib/i18n';
 import type { Story } from '@/lib/news';
 
-function firstSentences(text: string, count: number): string {
-  const parts = text.match(/[^.!?]+[.!?]+(\s|$)/g);
-  if (!parts) return text;
-  return parts.slice(0, count).join('').trim();
+// A sentence ends at . ! ? followed by a space and a capital letter (or the end),
+// so "P27.9 billion", "Nov. 19" and "Jr. Marcos" don't split a sentence.
+const ABBREVIATIONS = /\b(?:Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec|Mr|Mrs|Ms|Dr|Sen|Rep|Gov|Gen|Col|Atty|Engr|Jr|Sr|St|No|Sto|Sta)\.$/;
+
+export function firstSentences(text: string, count: number): string {
+  const sentences: string[] = [];
+  let start = 0;
+  const boundary = /[.!?]["”’)]?(?=\s+["“‘(]?[A-Z0-9ÑÁÉÍÓÚ])/g;
+  let m: RegExpExecArray | null;
+  while ((m = boundary.exec(text)) && sentences.length < count) {
+    const end = m.index + m[0].length;
+    if (ABBREVIATIONS.test(text.slice(Math.max(0, end - 6), end))) continue;
+    sentences.push(text.slice(start, end).trim());
+    start = end;
+  }
+  if (sentences.length < count) sentences.push(text.slice(start).trim());
+  return sentences.filter(Boolean).slice(0, count).join(' ');
 }
 
 export function StoryCard({
