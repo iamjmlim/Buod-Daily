@@ -17,6 +17,9 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # A library uses Node's old url.parse(); the warning is harmless and only clutters logs.
+      NODE_OPTIONS: --no-deprecation
     steps:
       - uses: actions/checkout@v5
 

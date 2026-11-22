@@ -122,6 +122,8 @@ SOURCES.push(
 // New outlets (added 2026-11-23): regional and business coverage.
 // Checked and left out: Spin.ph (404/403), BusinessMirror (403), Daily Tribune
 // (empty feed), Interaksyon (stale), PNA and PAGASA (no feed).
+// Manila Standard (below) works locally but serves GitHub's servers a non-RSS
+// page, so it was switched off in the database on 2026-11-23 (admin can re-enable).
 SOURCES.push(
   { slug: 'sunstar', name: 'SunStar', feedUrl: 'https://www.sunstar.com.ph/feed', homepage: 'https://www.sunstar.com.ph', tier: 2, language: 'en' },
   { slug: 'mindanaotimes', name: 'Mindanao Times', feedUrl: 'https://mindanaotimes.com.ph/feed/', homepage: 'https://mindanaotimes.com.ph', tier: 2, language: 'en' },

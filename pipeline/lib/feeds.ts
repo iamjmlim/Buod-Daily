@@ -43,6 +43,28 @@ function cleanText(html: string | undefined): string | null {
   return text.length > MAX_SNIPPET ? text.slice(0, MAX_SNIPPET - 1) + '…' : text;
 }
 
+// Outlet feeds occasionally ship a headline twice, run together
+// ("X projectsX projects"), or use a backtick as an opening quote.
+export function cleanTitle(title: string): string {
+  // Backtick after a space/start opens a quote; after a closing quote it's a stray; otherwise it closes.
+  let t = title
+    .replace(/^`|(?<=\s)`/g, '‘')
+    .replace(/(?<=’)`/g, '')
+    .replace(/`/g, '’')
+    .trim();
+  const mid = Math.floor(t.length / 2);
+  for (let k = mid - 2; k <= mid + 2; k++) {
+    if (k <= 10 || k >= t.length) continue;
+    const a = t.slice(0, k).trim();
+    const b = t.slice(k).trim();
+    if (a.length > 10 && a === b) {
+      t = a;
+      break;
+    }
+  }
+  return t;
+}
+
 function clampToNow(d: Date | null): Date | null {
   if (!d) return null;
   const now = Date.now();
@@ -86,7 +108,8 @@ export async function fetchFeed(
   const items: FeedItem[] = [];
   for (const item of feed.items ?? []) {
     const url = item.link?.trim();
-    const title = cleanText(item.title);
+    const rawTitle = cleanText(item.title);
+    const title = rawTitle ? cleanTitle(rawTitle) : null;
     if (!url || !title) continue;
     const canonicalUrl = canonicalizeUrl(url);
     if (!canonicalUrl) continue;
