@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { hreflang } from '@/lib/seo';
 import { notFound } from 'next/navigation';
+import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
@@ -31,6 +32,10 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       types: { 'application/rss+xml': `/${lang}/feed.xml` },
     },
     openGraph: { siteName: t.siteName, locale: lang === 'fil' ? 'fil_PH' : 'en_PH', type: 'website' },
+    // Google Search Console ownership check; set GOOGLE_SITE_VERIFICATION in Vercel.
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+      : {}),
   };
 }
 
@@ -58,6 +63,8 @@ export default async function SiteLayout({
           {children}
         </main>
         <SiteFooter locale={lang} />
+        {/* Cookieless page-view counts (Vercel Web Analytics); no personal data, no consent banner needed. */}
+        <Analytics />
       </body>
     </html>
   );
