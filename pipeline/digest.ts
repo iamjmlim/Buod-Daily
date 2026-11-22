@@ -116,6 +116,9 @@ async function main() {
 
   const subject = `Buod: ${ranked[0].r.summaries.find((s) => s.lang === 'fil')!.headline}`;
   const body = [
+    // Tells Buttondown this body is Markdown; without it the editor shows raw ## and [links](…).
+    '<!-- buttondown-editor-mode: plaintext -->',
+    '',
     `Magandang umaga! Narito ang ${ranked.length} pinakamahalagang balita ngayong ${filDate(date)}, bawat isa iniulat ng hindi bababa sa dalawang outlet.`,
     '',
     items.join('\n\n---\n\n'),
