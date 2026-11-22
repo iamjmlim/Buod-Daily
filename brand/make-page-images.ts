@@ -11,13 +11,13 @@ const serif = await readFile(join(fonts, 'newsreader/files/newsreader-latin-600-
 const sans = await readFile(join(fonts, 'geist-sans/files/geist-sans-latin-500-normal.woff'));
 const sansBold = await readFile(join(fonts, 'geist-sans/files/geist-sans-latin-600-normal.woff'));
 
-const PAPER = '#faf7f0';
-const INK = '#1d2230';
-const MUTED = '#5c6070';
-const BLUE = '#2f5bb7';
+const PAPER = '#171a24'; // dark mode: deep ink background
+const INK = '#f1ede4'; // warm newsprint white
+const MUTED = '#b3ada2';
+const BLUE = '#8db3ec'; // the site's dark-mode blue
 const GOLD = '#e7b93f';
-const GOLD_SOFT = '#f5e3b0';
-const GOLD_INK = '#7a5a12';
+const GOLD_SOFT = '#3a3220';
+const GOLD_INK = '#e7b93f';
 
 type El = { type: string; props: Record<string, unknown> };
 const h = (type: string, style: Record<string, unknown>, ...children: (El | string)[]): El => ({
@@ -102,11 +102,6 @@ const cover = h(
       outletPill('Iniulat ng 3+ outlet', 3, 0.95),
       h('div', { fontFamily: 'Geist', fontWeight: 500, fontSize: 27, color: MUTED }, 'May link sa bawat orihinal na ulat'),
     ),
-  ),
-  h(
-    'div',
-    { position: 'absolute', bottom: 34, right: 0, left: 0, justifyContent: 'center', fontFamily: 'Geist', fontWeight: 600, fontSize: 26, color: BLUE },
-    'buod-daily.vercel.app',
   ),
 );
 
