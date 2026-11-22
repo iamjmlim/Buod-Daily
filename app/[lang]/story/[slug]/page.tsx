@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
 import { OutletCount } from '@/components/site/outlet-count';
 import { StoryCard } from '@/components/site/story-card';
+import { DigestSignup } from '@/components/site/digest-signup';
 import { formatDateTime, getDictionary, isLocale } from '@/lib/i18n';
 import { getLatestStories, getRecentSlugs, getStory } from '@/lib/news';
 
@@ -172,6 +173,7 @@ async function StoryBody({ params }: { params: Params }) {
       <Suspense fallback={null}>
         <MoreStories lang={lang} slug={story.slug} category={story.category} />
       </Suspense>
+      <DigestSignup locale={lang} />
     </article>
   );
 }

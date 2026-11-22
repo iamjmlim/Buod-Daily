@@ -1,5 +1,6 @@
 {
   "name": "buod-daily",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,6 +14,8 @@
     "linkcheck": "node --env-file-if-exists=.env.local pipeline/linkcheck.ts",
     "summarize": "node --env-file-if-exists=.env.local pipeline/summarize.ts",
     "facebook": "node --env-file-if-exists=.env.local pipeline/facebook.ts",
+    "digest": "node --env-file-if-exists=.env.local pipeline/digest.ts",
+    "digest:dry": "node --env-file-if-exists=.env.local pipeline/digest.ts --dry-run",
     "facebook:dry": "node --env-file-if-exists=.env.local pipeline/facebook.ts --dry-run",
     "summarize:dry": "node --env-file-if-exists=.env.local pipeline/summarize.ts --dry-run"
   },

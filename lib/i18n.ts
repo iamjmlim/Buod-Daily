@@ -67,6 +67,11 @@ const en = {
   reportError: 'Spotted an error?',
   reportErrorCta: 'Tell us',
   correctionsHow: 'See how corrections work',
+  digestTitle: 'Top stories, every morning',
+  digestBody: 'The day’s 5 best-sourced stories in your inbox at 7 AM Philippine time, in Filipino and English.',
+  digestEmail: 'Your email',
+  digestButton: 'Subscribe',
+  digestNote: 'Free. One email a day. Unsubscribe anytime.',
   opensNewTab: '(opens in a new tab)',
   footerNote:
     'Buod Daily summarizes reporting by Philippine news outlets. We do not republish their articles: every summary links to the original reports.',
@@ -125,6 +130,11 @@ const fil: Dictionary = {
   reportError: 'May nakitang mali?',
   reportErrorCta: 'Ipaalam sa amin',
   correctionsHow: 'Alamin kung paano kami nagtatama',
+  digestTitle: 'Ulo ng balita, tuwing umaga',
+  digestBody: 'Ang 5 pinakamahalagang balita ng araw sa iyong inbox, 7 AM oras sa Pilipinas, sa Filipino at English.',
+  digestEmail: 'Iyong email',
+  digestButton: 'Mag-subscribe',
+  digestNote: 'Libre. Isang email araw-araw. Puwedeng mag-unsubscribe anumang oras.',
   opensNewTab: '(magbubukas sa bagong tab)',
   footerNote:
     'Binubuod ng Buod Daily ang mga ulat ng mga news outlet sa Pilipinas. Hindi namin muling inilalathala ang kanilang mga artikulo: may link sa orihinal ang bawat buod.',

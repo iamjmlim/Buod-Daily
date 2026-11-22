@@ -65,3 +65,11 @@ jobs:
           FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
           FB_LANG: ${{ vars.FB_LANG || 'fil' }}
           FB_DAILY_LIMIT: ${{ vars.FB_DAILY_LIMIT || '12' }}
+
+      - name: Send daily email digest (once a day after 7 AM PHT)
+        run: npm run digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}

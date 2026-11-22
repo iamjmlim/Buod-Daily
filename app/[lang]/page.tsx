@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { rankStories, StoryList, StoryListSkeleton } from '@/components/site/story-list';
+import { DigestSignup } from '@/components/site/digest-signup';
 import { formatDate, formatTime, getDictionary, isLocale } from '@/lib/i18n';
 import { getLatestStories } from '@/lib/news';
 
@@ -34,6 +35,7 @@ async function HomeStories({ params }: { params: Promise<{ lang: string }> }) {
         )}
       </div>
       <StoryList stories={rankStories(stories)} locale={lang} />
+      <DigestSignup locale={lang} />
     </>
   );
 }
