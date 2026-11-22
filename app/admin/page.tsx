@@ -19,6 +19,7 @@ type ReviewRow = {
   skip_reason: string | null;
   summary_updated_at: string | null;
   recheck: boolean;
+  fb_post_id: string | null;
   published_at: string | null;
   updated_at: string;
   summaries: { lang: string; headline: string; summary: string; why_it_matters: string | null; model: string }[];
@@ -41,7 +42,7 @@ async function loadDashboard() {
     db
       .from('stories')
       .select(
-        'id, slug, status, category, sensitivity, skip_reason, published_at, updated_at, summary_updated_at, recheck, summaries(lang, headline, summary, why_it_matters, model), articles(title, removed_at, sources(name))',
+        'id, slug, status, category, sensitivity, skip_reason, published_at, updated_at, summary_updated_at, recheck, fb_post_id, summaries(lang, headline, summary, why_it_matters, model), articles(title, removed_at, sources(name))',
       )
       .in('status', ['published', 'skipped', 'unpublished'])
       .gte('updated_at', since)
@@ -131,6 +132,7 @@ async function Dashboard() {
                   {r.sensitivity !== 'normal' && <Badge variant="outline">{r.sensitivity}</Badge>}
                   {r.summary_updated_at && <Badge variant="outline">updated {formatDateTime(r.summary_updated_at, 'en')}</Badge>}
                   {r.recheck && <Badge variant="destructive">re-check pending</Badge>}
+                  {r.fb_post_id && <Badge variant="outline">on Facebook</Badge>}
                   {r.articles.some((a) => a.removed_at) && <Badge variant="destructive">source withdrawn</Badge>}
                   <span className="text-muted-foreground">{outlets} outlets</span>
                   <span className="text-muted-foreground">{formatDateTime(r.published_at ?? r.updated_at, 'en')}</span>

@@ -12,6 +12,8 @@
     "ingest:dry": "node pipeline/ingest.ts --dry-run",
     "linkcheck": "node --env-file-if-exists=.env.local pipeline/linkcheck.ts",
     "summarize": "node --env-file-if-exists=.env.local pipeline/summarize.ts",
+    "facebook": "node --env-file-if-exists=.env.local pipeline/facebook.ts",
+    "facebook:dry": "node --env-file-if-exists=.env.local pipeline/facebook.ts --dry-run",
     "summarize:dry": "node --env-file-if-exists=.env.local pipeline/summarize.ts --dry-run"
   },
   "engines": {
@@ -19,6 +21,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@fontsource/geist-sans": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
     "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.119.2",
     "@vercel/analytics": "^2.0.1",
