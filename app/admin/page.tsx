@@ -22,7 +22,7 @@ type ReviewRow = {
   published_at: string | null;
   updated_at: string;
   summaries: { lang: string; headline: string; summary: string; why_it_matters: string | null; model: string }[];
-  articles: { title: string; removed_at: string | null; sources: { slug: string } | null }[];
+  articles: { title: string; removed_at: string | null; sources: { name: string } | null }[];
 };
 
 function philippineDate(): string {
@@ -41,7 +41,7 @@ async function loadDashboard() {
     db
       .from('stories')
       .select(
-        'id, slug, status, category, sensitivity, skip_reason, published_at, updated_at, summary_updated_at, recheck, summaries(lang, headline, summary, why_it_matters, model), articles(title, removed_at, sources(slug))',
+        'id, slug, status, category, sensitivity, skip_reason, published_at, updated_at, summary_updated_at, recheck, summaries(lang, headline, summary, why_it_matters, model), articles(title, removed_at, sources(name))',
       )
       .in('status', ['published', 'skipped', 'unpublished'])
       .gte('updated_at', since)
@@ -120,7 +120,7 @@ async function Dashboard() {
           {rows.map((r) => {
             const en = r.summaries.find((s) => s.lang === 'en');
             const fil = r.summaries.find((s) => s.lang === 'fil');
-            const outlets = new Set(r.articles.map((a) => a.sources?.slug)).size;
+            const outlets = new Set(r.articles.map((a) => a.sources?.name)).size;
             return (
               <li key={r.id} className="p-4">
                 <div className="flex flex-wrap items-center gap-2 text-xs">

@@ -103,7 +103,7 @@ async function dryRun() {
         tokens: titleTokens(item.title),
         storyId: null,
         tier: s.tier,
-        sourceId: s.slug,
+        sourceId: s.name, // outlet name: several feeds can belong to one outlet
         at: item.publishedAt ?? now,
       });
     }
@@ -142,7 +142,7 @@ async function dryRun() {
   );
   for (const { arts, score } of multi.slice(0, 10)) {
     console.log(`[importance ${score}]`);
-    for (const a of arts) console.log(`   ${a.sourceId.padEnd(9)} ${a.title}`);
+    for (const a of arts) console.log(`   ${a.sourceId.padEnd(18)} ${a.title}`);
   }
 }
 
@@ -253,7 +253,7 @@ async function run() {
   const recent = check(
     await db
       .from('articles')
-      .select('id, title, story_id, source_id, published_at, sources(tier)')
+      .select('id, title, story_id, source_id, published_at, sources(tier, name)')
       .gte('published_at', windowStart.toISOString())
       .limit(5000),
     'load recent articles',
@@ -263,7 +263,7 @@ async function run() {
     story_id: string | null;
     source_id: string;
     published_at: string;
-    sources: { tier: number } | null;
+    sources: { tier: number; name: string } | null;
   }[];
 
   const pool: PoolArticle[] = recent.map((a) => ({
@@ -272,7 +272,7 @@ async function run() {
     tokens: titleTokens(a.title),
     storyId: a.story_id,
     tier: a.sources?.tier ?? 2,
-    sourceId: a.source_id,
+    sourceId: a.sources?.name ?? a.source_id, // group by outlet, not by feed
     at: new Date(a.published_at),
   }));
   const unclustered = pool.filter((a) => a.storyId === null);

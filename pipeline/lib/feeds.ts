@@ -43,6 +43,12 @@ function cleanText(html: string | undefined): string | null {
   return text.length > MAX_SNIPPET ? text.slice(0, MAX_SNIPPET - 1) + '…' : text;
 }
 
+function clampToNow(d: Date | null): Date | null {
+  if (!d) return null;
+  const now = Date.now();
+  return d.getTime() > now + 5 * 60_000 ? new Date(now) : d;
+}
+
 function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
   const d = new Date(value);
@@ -89,7 +95,8 @@ export async function fetchFeed(
       canonicalUrl,
       title,
       snippet: cleanText(item.contentSnippet ?? item.summary ?? item.content),
-      publishedAt: parseDate(item.isoDate ?? item.pubDate),
+      // Some feeds label local time as GMT, which puts items in the future; cap at the time we read them.
+      publishedAt: clampToNow(parseDate(item.isoDate ?? item.pubDate)),
     });
   }
 

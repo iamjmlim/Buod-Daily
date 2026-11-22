@@ -66,3 +66,66 @@ export const SOURCES: SourceConfig[] = [
     language: 'en',
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Section feeds of the outlets above (added 2026-11-23). Each uses the outlet's
+// exact `name`, so a story counts that outlet once no matter how many of its
+// feeds carry it.
+const section = (
+  slug: string,
+  name: string,
+  homepage: string,
+  feedUrl: string,
+): SourceConfig => ({ slug, name, feedUrl, homepage, tier: 2, language: 'en' });
+
+const GMA = ['GMA News', 'https://www.gmanetwork.com/news/'] as const;
+const INQ = ['Inquirer.net', 'https://newsinfo.inquirer.net'] as const;
+const PHS = ['Philstar', 'https://www.philstar.com'] as const;
+const MT = ['The Manila Times', 'https://www.manilatimes.net'] as const;
+const RAP = ['Rappler', 'https://www.rappler.com'] as const;
+const BW = ['BusinessWorld', 'https://www.bworldonline.com'] as const;
+
+SOURCES.push(
+  section('gma-sports', ...GMA, 'https://data.gmanetwork.com/gno/rss/sports/feed.xml'),
+  section('gma-money', ...GMA, 'https://data.gmanetwork.com/gno/rss/money/feed.xml'),
+  section('gma-showbiz', ...GMA, 'https://data.gmanetwork.com/gno/rss/showbiz/feed.xml'),
+  section('gma-scitech', ...GMA, 'https://data.gmanetwork.com/gno/rss/scitech/feed.xml'),
+
+  section('inquirer-sports', ...INQ, 'https://sports.inquirer.net/feed'),
+  section('inquirer-business', ...INQ, 'https://business.inquirer.net/feed'),
+  section('inquirer-globalnation', ...INQ, 'https://globalnation.inquirer.net/feed'),
+  section('inquirer-entertainment', ...INQ, 'https://entertainment.inquirer.net/feed'),
+  section('inquirer-technology', ...INQ, 'https://technology.inquirer.net/feed'),
+
+  section('philstar-nation', ...PHS, 'https://www.philstar.com/rss/nation'),
+  section('philstar-sports', ...PHS, 'https://www.philstar.com/rss/sports'),
+  section('philstar-business', ...PHS, 'https://www.philstar.com/rss/business'),
+  section('philstar-world', ...PHS, 'https://www.philstar.com/rss/world'),
+  section('philstar-entertainment', ...PHS, 'https://www.philstar.com/rss/entertainment'),
+
+  section('manilatimes-sports', ...MT, 'https://www.manilatimes.net/sports/feed'),
+  section('manilatimes-business', ...MT, 'https://www.manilatimes.net/business/feed'),
+  section('manilatimes-world', ...MT, 'https://www.manilatimes.net/world/feed'),
+  section('manilatimes-regions', ...MT, 'https://www.manilatimes.net/regions/feed'),
+  section('manilatimes-entertainment', ...MT, 'https://www.manilatimes.net/entertainment-lifestyle/feed'),
+
+  section('rappler-sports', ...RAP, 'https://www.rappler.com/sports/feed/'),
+  section('rappler-business', ...RAP, 'https://www.rappler.com/business/feed/'),
+  section('rappler-world', ...RAP, 'https://www.rappler.com/world/feed/'),
+  section('rappler-entertainment', ...RAP, 'https://www.rappler.com/entertainment/feed/'),
+  section('rappler-mindanao', ...RAP, 'https://www.rappler.com/philippines/mindanao/feed/'),
+  section('rappler-visayas', ...RAP, 'https://www.rappler.com/philippines/visayas/feed/'),
+
+  section('bworld-sports', ...BW, 'https://www.bworldonline.com/sports/feed/'),
+);
+
+// New outlets (added 2026-11-23): regional and business coverage.
+// Checked and left out: Spin.ph (404/403), BusinessMirror (403), Daily Tribune
+// (empty feed), Interaksyon (stale), PNA and PAGASA (no feed).
+SOURCES.push(
+  { slug: 'sunstar', name: 'SunStar', feedUrl: 'https://www.sunstar.com.ph/feed', homepage: 'https://www.sunstar.com.ph', tier: 2, language: 'en' },
+  { slug: 'mindanaotimes', name: 'Mindanao Times', feedUrl: 'https://mindanaotimes.com.ph/feed/', homepage: 'https://mindanaotimes.com.ph', tier: 2, language: 'en' },
+  { slug: 'panaynews', name: 'Panay News', feedUrl: 'https://www.panaynews.net/feed/', homepage: 'https://www.panaynews.net', tier: 2, language: 'en' },
+  { slug: 'manilastandard', name: 'Manila Standard', feedUrl: 'https://manilastandard.net/feed', homepage: 'https://manilastandard.net', tier: 2, language: 'en' },
+  { slug: 'bilyonaryo', name: 'Bilyonaryo', feedUrl: 'https://bilyonaryo.com/feed/', homepage: 'https://bilyonaryo.com', tier: 2, language: 'en' },
+);

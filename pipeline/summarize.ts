@@ -60,7 +60,7 @@ function liveArticles(story: StoryRow) {
 }
 
 function outletInfo(story: StoryRow) {
-  const tiers = new Map(liveArticles(story).map((a) => [a.sources?.slug ?? a.url, a.sources?.tier ?? 2]));
+  const tiers = new Map(liveArticles(story).map((a) => [a.sources?.name ?? a.url, a.sources?.tier ?? 2]));
   return { outlets: tiers.size, tier1: [...tiers.values()].filter((t) => t === 1).length };
 }
 
@@ -139,7 +139,7 @@ async function gatherSources(story: StoryRow): Promise<SourceForPrompt[]> {
   // One article per outlet (the newest), most important outlets first.
   const perOutlet = new Map<string, StoryRow['articles'][number]>();
   for (const a of [...liveArticles(story)].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
-    const slug = a.sources?.slug ?? a.url;
+    const slug = a.sources?.name ?? a.url; // one article per outlet, not per feed
     if (!perOutlet.has(slug)) perOutlet.set(slug, a);
   }
   const chosen = [...perOutlet.values()]

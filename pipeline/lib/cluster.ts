@@ -11,6 +11,11 @@ const STOPWORDS = new Set([
   'news', 'ph', 'philippines', 'philippine', 'pinoy', 'filipino', 'filipinos', 'live', 'updates',
   // Filipino
   'ang', 'ng', 'mga', 'sa', 'na', 'at', 'si', 'ni', 'kay', 'para', 'pa', 'ay', 'din', 'rin',
+  // Dates: many unrelated items share today's date in their titles.
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+  'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'sept', 'oct', 'nov', 'dec',
+  'enero', 'pebrero', 'marso', 'abril', 'mayo', 'hunyo', 'hulyo', 'agosto', 'setyembre', 'oktubre', 'nobyembre', 'disyembre',
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'today', 'yesterday',
 ]);
 
 export function titleTokens(title: string): Set<string> {
@@ -20,7 +25,7 @@ export function titleTokens(title: string): Set<string> {
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/[\s-]+/)
-    .filter((w) => w.length > 1 && !STOPWORDS.has(w));
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w) && !/^(19|20)\d\d$/.test(w)); // years too
   return new Set(words);
 }
 

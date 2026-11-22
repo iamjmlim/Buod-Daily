@@ -54,7 +54,7 @@ function toStory(row: Row, locale: Locale): Story | null {
   // Articles the outlet has taken down are not shown as sources.
   const live = row.articles.filter((a) => !a.removed_at);
   for (const a of [...live].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
-    const outletSlug = a.sources?.slug ?? new URL(a.url).hostname;
+    const outletSlug = a.sources?.name ?? new URL(a.url).hostname; // one row per outlet, not per feed
     if (byOutlet.has(outletSlug)) continue;
     byOutlet.set(outletSlug, {
       outlet: a.sources?.name ?? new URL(a.url).hostname,
@@ -176,5 +176,7 @@ export async function getActiveSources(): Promise<SourceOutlet[]> {
 
   const { data, error } = await publicDb().from('sources').select('name, homepage').eq('active', true).order('name');
   if (error) throw new Error(`Loading sources failed: ${error.message}`);
-  return (data ?? []) as SourceOutlet[];
+  // Several feeds can belong to one outlet: list each outlet once.
+  const seen = new Set<string>();
+  return ((data ?? []) as SourceOutlet[]).filter((s) => (seen.has(s.name) ? false : (seen.add(s.name), true)));
 }
