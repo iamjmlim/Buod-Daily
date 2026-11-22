@@ -109,6 +109,8 @@ function capitalizedWords(text: string): string[] {
     tokens.forEach((tok, i) => {
       const w = tok.replace(/^[^A-Za-z]+|[^A-Za-z'’.-]+$/g, '').replace(/[.]+$/, '');
       if (!/^[A-Z]/.test(w) || w.length < 2) return;
+      // Amounts like "P575,944,129" are checked by the number check, not as names.
+      if (/\d/.test(tok)) return;
       // Ignore an ordinary capitalized first word of a sentence ("Lawmakers said...").
       const next = tokens[i + 1]?.replace(/^[^A-Za-z]+/, '') ?? '';
       if (i === 0 && !/^[A-Z]/.test(next)) return;
