@@ -60,6 +60,8 @@ const en = {
   weatherOfficial: 'Official forecasts and typhoon bulletins: PAGASA',
   moreIn: (section: string) => `More in ${section}`,
   backHome: 'Back to top stories',
+  sectionDescription: (section: string) =>
+    `${section} news from the Philippines, summarized in English and Filipino. Every story is reported by at least two outlets, with links to each original report.`,
   switchLanguage: 'Filipino',
   switchLanguageLabel: 'Basahin sa Filipino',
   about: 'How it works',
@@ -123,6 +125,8 @@ const fil: Dictionary = {
   weatherOfficial: 'Opisyal na taya ng panahon at bulletin ng bagyo: PAGASA',
   moreIn: (section: string) => `Iba pa sa ${section}`,
   backHome: 'Bumalik sa ulo ng balita',
+  sectionDescription: (section: string) =>
+    `Balitang ${section} sa Pilipinas, binuod sa Filipino at English. Iniulat ng hindi bababa sa dalawang outlet ang bawat balita, may link sa bawat orihinal na ulat.`,
   switchLanguage: 'English',
   switchLanguageLabel: 'Read in English',
   about: 'Paano ito gumagana',

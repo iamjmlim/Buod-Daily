@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const t = getDictionary(lang);
   return {
     title: t.categories[category],
+    description: t.sectionDescription(t.categories[category]),
     alternates: { canonical: `/${lang}/${category}`, languages: hreflang({ en: `/en/${category}`, fil: `/fil/${category}` }) },
   };
 }
