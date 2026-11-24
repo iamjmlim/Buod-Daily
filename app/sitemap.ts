@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { CATEGORY_SLUGS, LOCALES } from '@/lib/i18n';
 import { getSitemapStories } from '@/lib/news';
+import { weekOf } from '@/lib/weeks';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
@@ -12,6 +13,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '', lastModified: newest },
     { path: '/about' },
     { path: '/corrections' },
+    { path: '/week', lastModified: newest },
+    // One page per week that has stories; lastModified is that week's newest change.
+    ...[...Map.groupBy(stories, (s) => weekOf(new Date(s.publishedAt))).entries()].map(([w, list]) => ({
+      path: `/week/${w}`,
+      lastModified: list.map((s) => s.updatedAt).sort().at(-1),
+    })),
     ...CATEGORY_SLUGS.map((c) => ({ path: `/${c}`, lastModified: newest })),
     ...stories.map((s) => ({ path: `/story/${s.slug}`, lastModified: s.updatedAt })),
   ];

@@ -14,6 +14,11 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         </div>
         <ul className="sm:justify-self-end">
           <li>
+            <Link href={`/${locale}/week`} className="inline-flex min-h-11 items-center hover:underline">
+              {locale === 'fil' ? 'Balita kada linggo' : 'Top news by week'}
+            </Link>
+          </li>
+          <li>
             <Link href={`/${locale}/about`} className="inline-flex min-h-11 items-center hover:underline">
               {t.about}
             </Link>

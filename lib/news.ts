@@ -132,6 +132,47 @@ export async function getStory(slug: string, locale: Locale): Promise<Story | nu
   return data ? toStory(data as unknown as Row, locale) : null;
 }
 
+// The week's biggest stories: covered by the most outlets, then by the pipeline's importance score.
+export async function getTopStoriesBetween(locale: Locale, from: string, to: string, limit = 10): Promise<Story[]> {
+  'use cache';
+  cacheLife({ stale: 300, revalidate: 3600, expire: 86400 });
+  cacheTag('stories');
+
+  const { data, error } = await publicDb()
+    .from('stories')
+    .select(`${SELECT}, importance`)
+    .eq('status', 'published')
+    .gte('published_at', from)
+    .lt('published_at', to)
+    .order('importance', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(`Loading week stories failed: ${error.message}`);
+  const rows = (data ?? []) as unknown as (Row & { importance: number })[];
+  const importance = new Map(rows.map((r) => [r.id, r.importance]));
+  return rows
+    .map((r) => toStory(r, locale))
+    .filter((s): s is Story => s !== null)
+    .sort((a, b) => b.sources.length - a.sources.length || (importance.get(b.id) ?? 0) - (importance.get(a.id) ?? 0))
+    .slice(0, limit);
+}
+
+// Publication time of the oldest published story, to know which weeks have pages.
+export async function getFirstStoryDate(): Promise<string | null> {
+  'use cache';
+  cacheLife({ stale: 3600, revalidate: 86400, expire: 604800 });
+  cacheTag('stories');
+
+  const { data, error } = await publicDb()
+    .from('stories')
+    .select('published_at')
+    .eq('status', 'published')
+    .order('published_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`Loading first story failed: ${error.message}`);
+  return (data as { published_at: string } | null)?.published_at ?? null;
+}
+
 export type SitemapStory = {
   slug: string;
   publishedAt: string;
