@@ -13,6 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '', lastModified: newest },
     { path: '/about' },
     { path: '/corrections' },
+    { path: '/contact' },
+    { path: '/privacy', lastModified: '2026-11-26' },
     { path: '/week', lastModified: newest },
     // One page per week that has stories; lastModified is that week's newest change.
     ...[...Map.groupBy(stories, (s) => weekOf(new Date(s.publishedAt))).entries()].map(([w, list]) => ({
