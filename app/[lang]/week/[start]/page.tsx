@@ -7,6 +7,8 @@ import { StoryList, StoryListSkeleton } from '@/components/site/story-list';
 import { isLocale, type Locale } from '@/lib/i18n';
 import { getFirstStoryDate, getSitemapStories, getTopStoriesBetween } from '@/lib/news';
 import { hreflang } from '@/lib/seo';
+import { breadcrumbs, graph, storyList } from '@/lib/structured-data';
+import { JsonLd } from '@/components/site/json-ld';
 import { isWeekStart, shiftWeek, weekLabel, weekOf, weekRange } from '@/lib/weeks';
 
 type Params = Promise<{ lang: string; start: string }>;
@@ -66,8 +68,19 @@ async function WeekStories({ params }: { params: Params }) {
   const next = shiftWeek(start, 1);
   const linkClass = 'inline-flex min-h-11 items-center font-medium text-primary hover:underline';
 
+  const title = c.title(weekLabel(start, lang));
   return (
     <>
+      <JsonLd
+        data={graph(
+          storyList(lang, title, '/week/' + start, stories),
+          breadcrumbs(lang, [
+            ['Buod Daily', ''],
+            [c.all, '/week'],
+            [title, '/week/' + start],
+          ]),
+        )}
+      />
       <div className="border-b border-border pt-7 pb-4">
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{c.title(weekLabel(start, lang))}</h1>
         <p className="mt-2 max-w-[40rem] text-pretty text-muted-foreground">{start === current ? c.soFar : c.intro}</p>

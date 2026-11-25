@@ -25,7 +25,14 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const t = getDictionary(lang);
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: `${t.siteName}: ${t.tagline}`, template: `%s | ${t.siteName}` },
+    // The home page title names what people search for; other pages use the template.
+    title: {
+      default:
+        lang === 'fil'
+          ? `${t.siteName}: Balita ngayon sa Pilipinas, buod mula sa maraming news outlet`
+          : `${t.siteName}: Philippine news today, summarized from many news outlets`,
+      template: `%s | ${t.siteName}`,
+    },
     description: t.description,
     alternates: {
       canonical: `/${lang}`,

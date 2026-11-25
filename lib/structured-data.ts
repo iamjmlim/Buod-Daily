@@ -38,6 +38,33 @@ export function newsArticle(story: Story, lang: Locale) {
   };
 }
 
+/** Breadcrumb trail for Google ("Buod Daily › Nation › …"); `items` are [name, path] from the top. */
+export function breadcrumbs(lang: Locale, items: [string, string][]) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: `${SITE_URL}/${lang}${path}` })),
+  };
+}
+
+/** A week's top stories as an ordered list of links to their pages. */
+export function storyList(lang: Locale, name: string, path: string, stories: { slug: string; headline: string }[]) {
+  return {
+    '@type': 'CollectionPage',
+    name,
+    url: `${SITE_URL}/${lang}${path}`,
+    inLanguage: lang === 'fil' ? 'fil' : 'en',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: stories.map((s, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE_URL}/${lang}/story/${s.slug}`, name: s.headline })),
+    },
+  };
+}
+
+/** Wraps several schema.org nodes in one JSON-LD document. */
+export function graph(...nodes: object[]) {
+  return { '@context': 'https://schema.org', '@graph': nodes };
+}
+
 export function website(lang: Locale, description: string) {
   return {
     '@context': 'https://schema.org',
