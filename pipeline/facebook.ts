@@ -3,6 +3,9 @@
 //
 //   npm run facebook              -> post / remove for real
 //   npm run facebook -- --dry-run -> print what it would post, touch nothing
+//   npm run facebook -- --dry-run --week -> preview last week's Monday roundup now
+//
+// Every Monday from FB_WEEK_HOUR (default 8 AM PHT) it posts one roundup of last week's top stories.
 //
 // Settings (env):
 //   FB_PAGE_ID, FB_PAGE_TOKEN   required; without them this step does nothing
@@ -13,6 +16,7 @@
 
 import { check, getDb } from './lib/db.ts';
 import { firstSentences } from '../lib/excerpt.ts';
+import { shiftWeek, weekLabel, weekOf, weekRange } from '../lib/weeks.ts';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const PAGE_ID = process.env.FB_PAGE_ID;
@@ -100,6 +104,57 @@ async function removeUnpublished(stats: { removed: number }) {
   }
 }
 
+// ---------- weekly roundup ----------
+// Every Monday from FB_WEEK_HOUR (default 8 AM Philippine time), one post lists last
+// week's top stories (most outlets first) and links to that week's page. Posted once
+// per week; the week posted is remembered in settings.fb_week_state.
+
+const WEEK_HOUR = Number(process.env.FB_WEEK_HOUR ?? 8);
+const FORCE_WEEK = process.argv.includes('--week'); // with --dry-run: preview last week's roundup now
+type WeekState = { last_week?: string; last_posted_at?: string; last_post_id?: string };
+
+async function getWeekState(): Promise<WeekState> {
+  const row = check(await db.from('settings').select('value').eq('key', 'fb_week_state').maybeSingle(), 'read week state') as {
+    value: WeekState;
+  } | null;
+  return row?.value ?? {};
+}
+
+/** Last week's Monday if its roundup is due now, else null. */
+function roundupDue(state: WeekState): string | null {
+  const ph = new Date(Date.now() + 8 * 3_600_000);
+  const week = shiftWeek(weekOf(new Date()), -1);
+  if (state.last_week === week && !FORCE_WEEK) return null;
+  if (!FORCE_WEEK && (ph.getUTCDay() !== 1 || ph.getUTCHours() < WEEK_HOUR)) return null;
+  return week;
+}
+
+async function roundupText(week: string): Promise<{ message: string; link: string } | null> {
+  const { from, to } = weekRange(week);
+  const rows = check(
+    await db
+      .from('stories')
+      .select('id, slug, importance, published_at, summaries(lang, headline, summary), articles(removed_at, sources(name))')
+      .eq('status', 'published')
+      .gte('published_at', from)
+      .lt('published_at', to)
+      .order('importance', { ascending: false })
+      .limit(200),
+    'load week stories',
+  ) as unknown as Row[];
+  const outlets = (r: Row) => new Set(r.articles.filter((a) => !a.removed_at).map((a) => a.sources?.name)).size;
+  const top = rows.sort((a, b) => outlets(b) - outlets(a) || b.importance - a.importance).slice(0, 5);
+  const headlines = top
+    .map((r) => (r.summaries.find((x) => x.lang === LANG) ?? r.summaries.find((x) => x.lang === 'en'))?.headline)
+    .filter(Boolean);
+  if (headlines.length < 3) return null; // too quiet a week for a roundup
+  const link = `${SITE_URL}/${LANG}/week/${week}`;
+  const label = weekLabel(week, LANG);
+  const title = LANG === 'fil' ? `MGA PANGUNAHING BALITA NG LINGGO (${label})` : `TOP STORIES OF THE WEEK (${label})`;
+  const cta = LANG === 'fil' ? 'Basahin ang buod ng bawat isa at ang mga orihinal na ulat:' : 'Read each summary and the original reports:';
+  return { message: `${title}\n\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}\n\n${cta} ${link}`, link };
+}
+
 async function main() {
   if ((!PAGE_ID || !TOKEN) && !DRY_RUN) {
     console.log('Facebook not configured (FB_PAGE_ID / FB_PAGE_TOKEN missing). Skipping.');
@@ -127,10 +182,35 @@ async function main() {
     await db.from('stories').select('fb_posted_at').not('fb_posted_at', 'is', null).order('fb_posted_at', { ascending: false }).limit(1),
     'last post',
   ) as { fb_posted_at: string }[];
-  const minutesSinceLast = last[0] ? (Date.now() - Date.parse(last[0].fb_posted_at)) / 60_000 : Infinity;
+  // The weekly roundup counts toward the same daily cap and gap as story posts.
+  const weekState = await getWeekState();
+  const weekAt = weekState.last_posted_at ?? null;
+  const postedToday = today.length + (weekAt && weekAt >= philippineDayStart() ? 1 : 0);
+  stats.postedToday = postedToday;
+  const lastAt = [last[0]?.fb_posted_at, weekAt].filter(Boolean).map((d) => Date.parse(d!));
+  const minutesSinceLast = lastAt.length ? (Date.now() - Math.max(...lastAt)) / 60_000 : Infinity;
 
-  if (today.length >= DAILY_LIMIT) stats.reason = `daily limit reached (${today.length}/${DAILY_LIMIT})`;
-  else if (minutesSinceLast < MIN_GAP_MINUTES) stats.reason = `last post ${Math.round(minutesSinceLast)} min ago (gap ${MIN_GAP_MINUTES})`;
+  if (postedToday >= DAILY_LIMIT) stats.reason = `daily limit reached (${postedToday}/${DAILY_LIMIT})`;
+  else if (minutesSinceLast < MIN_GAP_MINUTES && !FORCE_WEEK) stats.reason = `last post ${Math.round(minutesSinceLast)} min ago (gap ${MIN_GAP_MINUTES})`;
+
+  const week = stats.reason ? null : roundupDue(weekState);
+  if (week) {
+    const post = await roundupText(week);
+    if (post) {
+      console.log(`✓ WEEKLY ROUNDUP (${week}):\n${post.message.replace(/^/gm, '   ')}\n`);
+      if (!DRY_RUN) {
+        const res = await graph('POST', `${PAGE_ID}/feed`, { message: post.message, link: post.link });
+        const value: WeekState = { last_week: week, last_posted_at: new Date().toISOString(), last_post_id: res.id };
+        check(await db.from('settings').upsert({ key: 'fb_week_state', value }), 'save week state');
+        console.log(`   posted: ${res.id}`);
+      }
+      stats.posted++;
+      stats.reason = 'weekly roundup posted';
+    } else if (!DRY_RUN) {
+      // Too few stories that week: mark it done so it is not retried every run.
+      check(await db.from('settings').upsert({ key: 'fb_week_state', value: { ...weekState, last_week: week } }), 'save week state');
+    }
+  }
 
   if (!stats.reason) {
     const since = new Date(Date.now() - FRESH_HOURS * 3_600_000).toISOString();
